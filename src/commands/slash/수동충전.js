@@ -2,38 +2,38 @@ import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("¼öµ¿ÃæÀü")
-    .setDescription("ò¦ïÒªµªìª¿«æ?«¶?ªËâ¢ÔÑªÇ«İ«¤«ó«Èªò«Á«ã?«¸ª·ªŞª¹")
+    .setName("ìˆ˜ë™ì¶©ì „")
+    .setDescription("íŠ¹ì • ìœ ì €ì—ê²Œ ìˆ˜ë™ìœ¼ë¡œ ì”ì•¡ì„ ì¶©ì „í•©ë‹ˆë‹¤")
     .addUserOption(option =>
-      option.setName("À¯Àú")
-        .setDescription("ÃæÀüÇÒ À¯Àú")
+      option.setName("ìœ ì €")
+        .setDescription("ì¶©ì „í•  ìœ ì €")
         .setRequired(true)
     )
     .addStringOption(option =>
-      option.setName("±İ¾×")
-        .setDescription("ÃæÀüÇÒ ±İ¾× (¸¶ÀÌ³Ê½º °¡´É)")
+      option.setName("ê¸ˆì•¡")
+        .setDescription("ì¶©ì „í•  ê¸ˆì•¡ (ë§ˆì´ë„ˆìŠ¤ ê°€ëŠ¥)")
         .setRequired(true)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
   async execute(interaction, client, prisma) {
-    const targetUser = interaction.options.getUser("À¯Àú");
-    const amount = parseInt(interaction.options.getString("±İ¾×"));
+    const targetUser = interaction.options.getUser("ìœ ì €");
+    const amount = parseInt(interaction.options.getString("ê¸ˆì•¡"));
     
     if (isNaN(amount)) {
-      return interaction.reply({ content: "À¯È¿ÇÑ ±İ¾×À» ÀÔ·ÂÇØÁÖ¼¼¿ä.", ephemeral: true });
+      return interaction.reply({ content: "ìœ íš¨í•œ ê¸ˆì•¡ì„ ì…ë ¥í•´ì£¼ì„¸ìš”.", ephemeral: true });
     }
     
     const user = await prisma.user.findUnique({ where: { id: targetUser.id } });
     
     if (!user) {
-      return interaction.reply({ content: "ÇØ´ç À¯Àú¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù.", ephemeral: true });
+      return interaction.reply({ content: "í•´ë‹¹ ìœ ì €ë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.", ephemeral: true });
     }
     
     let newBalance = user.balance + amount;
     
     if (newBalance < 0) {
       return interaction.reply({ 
-        content: `ÀÜ¾×Àº 0¿ø ¹Ì¸¸À¸·Î ¼³Á¤ÇÒ ¼ö ¾ø½À´Ï´Ù. (ÇöÀç ÀÜ¾×: ${user.balance.toLocaleString()}¿ø)`,
+        content: `ì”ì•¡ì€ 0ì› ë¯¸ë§Œìœ¼ë¡œ ì„¤ì •í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤. (í˜„ì¬ ì”ì•¡: ${user.balance.toLocaleString()}ì›)`,
         ephemeral: true 
       });
     }
@@ -44,12 +44,12 @@ export default {
     });
     
     const embed = new EmbedBuilder()
-      .setTitle("¼öµ¿ ÃæÀü ¿Ï·á")
+      .setTitle("ìˆ˜ë™ ì¶©ì „ ì™„ë£Œ")
       .setColor("#00FF00")
       .addFields(
-        { name: "´ë»ó", value: targetUser.tag, inline: true },
-        { name: "º¯°æ", value: `${amount > 0 ? "+" : ""}${amount.toLocaleString()}¿ø`, inline: true },
-        { name: "ÀÜ¾×", value: `${newBalance.toLocaleString()}¿ø`, inline: true }
+        { name: "ëŒ€ìƒ", value: targetUser.tag, inline: true },
+        { name: "ë³€ê²½", value: `${amount > 0 ? "+" : ""}${amount.toLocaleString()}ì›`, inline: true },
+        { name: "ì”ì•¡", value: `${newBalance.toLocaleString()}ì›`, inline: true }
       )
       .setTimestamp();
     

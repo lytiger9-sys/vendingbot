@@ -2,25 +2,25 @@ import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("ÀÜ¾×º¸±â")
-    .setDescription("ò¦ïÒªµªìª¿«æ?«¶?ªÎ?ÍÔªòü¬ìãª·ªŞª¹")
+    .setName("ì”ì•¡ë³´ê¸°")
+    .setDescription("íŠ¹ì • ìœ ì €ì˜ ì”ì•¡ì„ í™•ì¸í•©ë‹ˆë‹¤")
     .addUserOption(option =>
-      option.setName("À¯Àú")
-        .setDescription("ÀÜ¾×À» È®ÀÎÇÒ À¯Àú")
+      option.setName("ìœ ì €")
+        .setDescription("ì”ì•¡ì„ í™•ì¸í•  ìœ ì €")
         .setRequired(false)
     ),
   async execute(interaction, client, prisma) {
-    const targetUser = interaction.options.getUser("À¯Àú") || interaction.user;
+    const targetUser = interaction.options.getUser("ìœ ì €") || interaction.user;
     
     const user = await prisma.user.findUnique({ where: { id: targetUser.id } });
     
     const embed = new EmbedBuilder()
-      .setTitle("ÀÜ¾× Á¶È¸")
+      .setTitle("ì”ì•¡ ì¡°íšŒ")
       .setColor("#5865F2")
       .addFields(
-        { name: "À¯Àú", value: targetUser.tag, inline: true },
-        { name: "ÀÜ¾×", value: `${(user?.balance || 0).toLocaleString()}¿ø`, inline: true },
-        { name: "´©Àû±¸¸Å", value: `${(user?.totalSpent || 0).toLocaleString()}¿ø`, inline: true }
+        { name: "ìœ ì €", value: targetUser.tag, inline: true },
+        { name: "ì”ì•¡", value: `${(user?.balance || 0).toLocaleString()}ì›`, inline: true },
+        { name: "ëˆ„ì êµ¬ë§¤", value: `${(user?.totalSpent || 0).toLocaleString()}ì›`, inline: true }
       )
       .setTimestamp();
     

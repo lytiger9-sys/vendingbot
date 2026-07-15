@@ -1,5 +1,5 @@
 import express from 'express';
-import { prisma } from '../../../index.js';
+import { prisma } from '../../index.js';
 import { isAuthenticated } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -67,7 +67,8 @@ router.post('/reviews', isAuthenticated, async (req, res) => {
     const { receiptId, rating, content } = req.body;
     
     const receipt = await prisma.receipt.findFirst({
-      where: { id: receiptId, userId: req.user.id }
+      where: { id: receiptId, userId: req.user.id },
+      include: { product: true }
     });
     
     if (!receipt) {

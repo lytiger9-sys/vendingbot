@@ -10,24 +10,132 @@
 </div>
 <div class="bg-gray-800 rounded-lg p-6">
   <h2 class="text-xl font-bold mb-4">🛍️ 최근 구매 내역</h2>
-  <table class="w-full"><thead><tr class="text-left text-gray-400"><th class="pb-3">제품</th><th class="pb-3">가격</th><th class="pb-3">일시</th><th class="pb-3">후기</th></tr></thead><tbody id="purchases"></tbody></table>
+  <table class="w-full">
+    <thead>
+      <tr class="text-left text-gray-400">
+        <th class="pb-3">제품</th>
+        <th class="pb-3">가격</th>
+        <th class="pb-3">일시</th>
+        <th class="pb-3">후기</th>
+      </tr>
+    </thead>
+    <tbody id="purchases"></tbody>
+  </table>
 </div>
 <div id="reviewModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
   <div class="bg-gray-800 rounded-lg p-6 w-96">
     <h3 class="text-lg font-bold mb-4">⭐ 후기 작성</h3>
-    <div class="mb-4"><label class="block text-sm text-gray-400 mb-2">평점</label><select id="rating" class="w-full p-2 rounded bg-gray-700 border border-gray-600"><option value="5">★★★★★</option><option value="4">★★★★☆</option><option value="3">★★★☆☆</option><option value="2">★★☆☆☆</option><option value="1">★☆☆☆☆</option></select></div>
-    <div class="mb-4"><label class="block text-sm text-gray-400 mb-2">후기 내용</label><textarea id="reviewContent" class="w-full p-2 rounded bg-gray-700 border border-gray-600 h-24"></textarea></div>
+    <div class="mb-4">
+      <label class="block text-sm text-gray-400 mb-2">평점</label>
+      <select id="rating" class="w-full p-2 rounded bg-gray-700 border border-gray-600">
+        <option value="5">★★★★★</option>
+        <option value="4">★★★★☆</option>
+        <option value="3">★★★☆☆</option>
+        <option value="2">★★☆☆☆</option>
+        <option value="1">★☆☆☆☆</option>
+      </select>
+    </div>
+    <div class="mb-4">
+      <label class="block text-sm text-gray-400 mb-2">후기 내용</label>
+      <textarea id="reviewContent" class="w-full p-2 rounded bg-gray-700 border border-gray-600 h-24"></textarea>
+    </div>
     <input type="hidden" id="reviewReceiptId">
-    <div class="flex gap-2"><button onclick="submitReview()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 rounded">작성완료</button><button onclick="closeReviewModal()" class="flex-1 py-2 bg-gray-600 hover:bg-gray-500 rounded">취소</button></div>
+    <div class="flex gap-2">
+      <button onclick="submitReview()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 rounded">작성완료</button>
+      <button onclick="closeReviewModal()" class="flex-1 py-2 bg-gray-600 hover:bg-gray-500 rounded">취소</button>
+    </div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let chart;let purchases=[];
-async function loadUserStats(){const r=await fetch("/dashboard/stats");const d=await r.json();document.getElementById("balance").textContent=(d.user.balance||0).toLocaleString()+"원";document.getElementById("totalCount").textContent=d.totalPurchases;document.getElementById("totalSpent").textContent=(d.totalSpent||0).toLocaleString()+"원";const months=Object.keys(d.monthlyData).sort();const amounts=months.map(m=>d.monthlyData[m].amount);if(chart)chart.destroy();chart=new Chart(document.getElementById("chart"),{type:"line",data:{labels:months, datasets:[{label:"소비금액",data:amounts,borderColor:"#5865F2",backgroundColor:"rgba(88,101,242,0.2)",fill:true}]},options:{responsive:true,scales:{y:{beginAtZero:true}}}});}
-async function loadPurchases(){const r=await fetch("/dashboard/purchases");purchases=await r.json();const tbody=document.getElementById("purchases");tbody.innerHTML=purchases.length===0?"<tr><td colspan=4 class=text-gray-400>구매 내역이 없습니다</td></tr>":purchases.map(p=>`<tr class="border-t border-gray-700"><td class="py-3">${p.product?.name||"알 수 없음"}</td><td class="py-3">${p.paidAmount.toLocaleString()}원</td><td class="py-3 text-gray-400">${new Date(p.purchasedAt).toLocaleString("ko-KR")}</td><td class="py-3">${p.hasReview?"<span class=\"text-green-400\">작성됨</span>":`<button onclick="openReviewModal("${p.id}")" class=\"text-blue-400 hover:underline\">후기쓰기</button>`}</td></tr>`).join("");}
-function openReviewModal(id){document.getElementById("reviewReceiptId").value=id;document.getElementById("reviewModal").classList.remove("hidden");}
-function closeReviewModal(){document.getElementById("reviewModal").classList.add("hidden");}
-async function submitReview(){const r=await fetch("/dashboard/reviews",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({receiptId:document.getElementById("reviewReceiptId").value,rating:document.getElementById("rating").value,content:document.getElementById("reviewContent").value})});if(r.ok){alert("후기가 작성되었습니다");closeReviewModal();loadPurchases();}}
-loadUserStats();loadPurchases();
+  let chart;
+  let purchases = [];
+
+  async function loadUserStats() {
+    const r = await fetch("/dashboard/stats");
+    const d = await r.json();
+    document.getElementById("balance").textContent = (d.user.balance || 0).toLocaleString() + "원";
+    document.getElementById("totalCount").textContent = d.totalPurchases;
+    document.getElementById("totalSpent").textContent = (d.totalSpent || 0).toLocaleString() + "원";
+    
+    const months = Object.keys(d.monthlyData).sort();
+    const amounts = months.map(m => d.monthlyData[m].amount);
+    
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("chart"), {
+      type: "line",
+      data: {
+        labels: months,
+        datasets: [{
+          label: "소비금액",
+          data: amounts,
+          borderColor: "#5865F2",
+          backgroundColor: "rgba(88,101,242,0.2)",
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  async function loadPurchases() {
+    const r = await fetch("/dashboard/purchases");
+    purchases = await r.json();
+    const tbody = document.getElementById("purchases");
+    
+    if (purchases.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">구매 내역이 없습니다</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = purchases.map(p => `
+      <tr class="border-t border-gray-700">
+        <td class="py-3">${p.product?.name || "알 수 없음"}</td>
+        <td class="py-3">${p.paidAmount.toLocaleString()}원</td>
+        <td class="py-3 text-gray-400">${new Date(p.purchasedAt || p.createdAt).toLocaleString("ko-KR")}</td>
+        <td class="py-3">
+          ${p.hasReview ? 
+            '<span class="text-green-400">작성됨</span>' : 
+            \`<button onclick="openReviewModal('\${p.id}')" class="text-blue-400 hover:underline">후기쓰기</button>\`
+          }
+        </td>
+      </tr>`).join("");
+  }
+
+  function openReviewModal(id) {
+    document.getElementById("reviewReceiptId").value = id;
+    document.getElementById("reviewModal").classList.remove("hidden");
+  }
+
+  function closeReviewModal() {
+    document.getElementById("reviewModal").classList.add("hidden");
+  }
+
+  async function submitReview() {
+    const r = await fetch("/dashboard/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        receiptId: document.getElementById("reviewReceiptId").value,
+        rating: document.getElementById("rating").value,
+        content: document.getElementById("reviewContent").value
+      })
+    });
+    
+    if (r.ok) {
+      alert("후기가 작성되었습니다");
+      closeReviewModal();
+      loadPurchases();
+    } else {
+      alert("후기 작성에 실패했습니다.");
+    }
+  }
+
+  loadUserStats();
+  loadPurchases();
 </script>
