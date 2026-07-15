@@ -1,38 +1,38 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } from \"discord.js\";
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("ÀÓº£µå°Ô½Ã")
-    .setDescription("»óÁ¡ ¸ŞÀÎ ÀÓº£µå¸¦ °Ô½ÃÇÕ´Ï´Ù")
+    .setName(\"ì„ë² ë“œê²Œì‹œ\")
+    .setDescription(\"ìƒì  ì„ë² ë“œë¥¼ ê²Œì‹œí•©ë‹ˆë‹¤\")
     .addChannelOption(option =>
-      option.setName("Ã¤³Î")
-        .setDescription("ÀÓº£µå¸¦ °Ô½ÃÇÒ Ã¤³Î")
+      option.setName(\"ì±„ë„\")
+        .setDescription(\"ì„ë² ë“œë¥¼ ê²Œì‹œí•  ì±„ë„\")
         .addChannelTypes(ChannelType.GuildText)
         .setRequired(false)
     ),
   async execute(interaction, client, prisma) {
     await interaction.deferReply({ ephemeral: true });
     
-    const settings = await prisma.embedSetting.findUnique({ where: { id: "main_shop" } }) || {
-      title: "ÀÚÆÇ±â¿¡ ¿À½Å °ÍÀ» È¯¿µÇÕ´Ï´Ù",
-      description: "¾Æ·¡ ¹öÆ°À» ´­·¯ ¿øÇÏ´Â ¼­ºñ½º¸¦ ÀÌ¿ëÇÏ¼¼¿ä.",
-      color: "#5865F2"
+    const settings = await prisma.embedSetting.findUnique({ where: { id: \"main_shop\" } }) || {
+      title: \"ìƒì ì— ì˜¤ì‹  ê²ƒì„ í™˜ì˜í•©ë‹ˆë‹¤\",
+      description: \"ì•„ë˜ ë²„íŠ¼ì„ ëˆŒëŸ¬ ì›í•˜ëŠ” ì„œë¹„ìŠ¤ë¥¼ ì´ìš©í•˜ì„¸ìš”.\",
+      color: \"#5865F2\"
     };
     
-    const targetChannel = interaction.options.getChannel("Ã¤³Î") || interaction.channel;
+    const targetChannel = interaction.options.getChannel(\"ì±„ë„\") || interaction.channel;
     
     const row1 = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId("btn_deposit").setLabel("ÀÔ±İ").setStyle(ButtonStyle.Primary),
-      new ButtonBuilder().setCustomId("btn_products").setLabel("Á¦Ç°").setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId("btn_my_info").setLabel("³»Á¤º¸").setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId("btn_review_info").setLabel("ÈÄ±â").setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId(\"btn_deposit\").setLabel(\"ì…ê¸ˆ\").setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(\"btn_products\").setLabel(\"ìƒí’ˆ\").setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(\"btn_my_info\").setLabel(\"ë‚´ì •ë³´\").setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder().setCustomId(\"btn_review_info\").setLabel(\"í›„ê¸°\").setStyle(ButtonStyle.Secondary)
     );
     
     const row2 = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setLabel("È¨ÆäÀÌÁö")
+        .setLabel(\"í™ˆí˜ì´ì§€\")
         .setStyle(ButtonStyle.Link)
-        .setURL(process.env.DASHBOARD_URL || "http://localhost:3000")
+        .setURL(process.env.DASHBOARD_URL || \"http://localhost:3000\")
     );
     
     const embed = new EmbedBuilder()
@@ -43,6 +43,6 @@ export default {
       .setTimestamp();
     
     await targetChannel.send({ embeds: [embed], components: [row1, row2] });
-    await interaction.editReply({ content: `${targetChannel} Ã¤³Î¿¡ ÀÓº£µå°¡ °Ô½ÃµÇ¾ú½À´Ï´Ù.` });
+    await interaction.editReply({ content: `${targetChannel} ì±„ë„ì— ì„ë² ë“œê°€ ê²Œì‹œë˜ì—ˆìŠµë‹ˆë‹¤.` });
   }
 };

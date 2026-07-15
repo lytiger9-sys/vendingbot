@@ -5,7 +5,7 @@
     <div class="space-y-4">
       <input type="text" id="bankInfo" placeholder="은행명/계좌번호 (예: 국민 123-456-789)" class="w-full p-2 rounded bg-gray-700 border border-gray-600">
       <input type="number" id="minDeposit" placeholder="최소 입금 금액" class="w-full p-2 rounded bg-gray-700 border border-gray-600">
-      <button onclick="saveSetting("BANK_INFO", document.getElementById("bankInfo").value)" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded">저장</button>
+      <button onclick="saveSetting('BANK_INFO', document.getElementById('bankInfo').value)" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded">저장</button>
     </div>
   </div>
   <div class="bg-gray-800 rounded-lg p-6">
@@ -21,8 +21,8 @@
 <div class="mt-6 bg-gray-800 rounded-lg p-6">
   <h2 class="text-lg font-bold mb-4">📱 SMS 자동충전 가이드</h2>
   <div class="flex gap-4 mb-4">
-    <button onclick="showGuide("android")" id="btnAndroid" class="px-4 py-2 bg-green-600 rounded">안드로이드</button>
-    <button onclick="showGuide("ios")" id="btnIos" class="px-4 py-2 bg-gray-600 rounded">아이폰</button>
+    <button onclick="showGuide('android')" id="btnAndroid" class="px-4 py-2 bg-green-600 rounded">안드로이드</button>
+        <button onclick="showGuide('ios')" id="btnIos" class="px-4 py-2 bg-gray-600 rounded">아이폰</button>
   </div>
   <div id="guideContent" class="bg-gray-700 rounded p-4 text-sm whitespace-pre-wrap"></div>
 </div>

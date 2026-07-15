@@ -1,7 +1,8 @@
 import { EmbedBuilder } from 'discord.js';
 
-export async function sendReviewWebhook(user, receipt, rating, content) {
+export async function sendReviewWebhook(user, receipt, rating, content, client) {
   try {
+    const { prisma } = await import('../index.js');
     const reviewChannelId = await getSetting('REVIEW_CHANNEL_ID');
     if (!reviewChannelId) {
       console.log('Review channel not configured');
@@ -37,4 +38,4 @@ async function getSetting(key) {
   const { prisma } = await import('../index.js');
   const setting = await prisma.systemSetting.findUnique({ where: { key } });
   return setting?.value;
-}
+};
