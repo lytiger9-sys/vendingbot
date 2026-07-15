@@ -1,0 +1,33 @@
+<div class="mb-6"><h1 class="text-2xl font-bold">📜 구매/충전 로그</h1></div>
+<div class="flex gap-4 mb-6">
+  <button onclick="showTab("payments")" id="tabPayments" class="px-4 py-2 bg-blue-600 rounded">충전 로그</button>
+  <button onclick="showTab("receipts")" id="tabReceipts" class="px-4 py-2 bg-gray-600 rounded">구매 로그</button>
+</div>
+<div id="paymentsTab" class="bg-gray-800 rounded-lg p-6">
+  <div class="flex gap-4 mb-4">
+    <select id="paymentStatusFilter" onchange="loadPayments()" class="p-2 rounded bg-gray-700 border border-gray-600">
+      <option value="">전체</option><option value="PENDING">대기중</option><option value="COMPLETED">완료</option><option value="REJECTED">거절</option>
+    </select>
+    <input type="text" id="paymentSearch" placeholder="검색 (입금자명/유저ID)" class="flex-1 p-2 rounded bg-gray-700 border border-gray-600">
+    <button onclick="loadPayments()" class="px-4 py-2 bg-blue-600 rounded">검색</button>
+  </div>
+  <table class="w-full text-sm"><thead><tr class="text-left text-gray-400"><th class="pb-3">유저</th><th class="pb-3">입금자명</th><th class="pb-3">금액</th><th class="pb-3">상태</th><th class="pb-3">일시</th><th class="pb-3">작업</th></tr></thead><tbody id="paymentsList"></tbody></table>
+  <div id="paymentsPagination" class="mt-4 flex gap-2 justify-center"></div>
+</div>
+<div id="receiptsTab" class="hidden bg-gray-800 rounded-lg p-6">
+  <div class="flex gap-4 mb-4">
+    <input type="text" id="receiptSearch" placeholder="검색 (유저ID/제품ID)" class="flex-1 p-2 rounded bg-gray-700 border border-gray-600">
+    <button onclick="loadReceipts()" class="px-4 py-2 bg-blue-600 rounded">검색</button>
+  </div>
+  <table class="w-full text-sm"><thead><tr class="text-left text-gray-400"><th class="pb-3">유저</th><th class="pb-3">제품</th><th class="pb-3">결제금액</th><th class="pb-3">후기</th><th class="pb-3">일시</th></tr></thead><tbody id="receiptsList"></tbody></table>
+  <div id="receiptsPagination" class="mt-4 flex gap-2 justify-center"></div>
+</div>
+<script>
+let paymentsPage=0,receiptsPage=0;
+function showTab(t){document.getElementById("paymentsTab").classList.toggle("hidden",t!=="payments");document.getElementById("receiptsTab").classList.toggle("hidden",t!=="receipts");document.getElementById("tabPayments").className=t==="payments"?"px-4 py-2 bg-blue-600 rounded":"px-4 py-2 bg-gray-600 rounded";document.getElementById("tabReceipts").className=t==="receipts"?"px-4 py-2 bg-blue-600 rounded":"px-4 py-2 bg-gray-600 rounded";}
+async function loadPayments(){const status=document.getElementById("paymentStatusFilter").value;const search=document.getElementById("paymentSearch").value;const r=await fetch(`/api/logs/payments?status=${status}&search=${search}&limit=20&offset=${paymentsPage*20}`);const d=await r.json();document.getElementById("paymentsList").innerHTML=d.payments.map(p=>`<tr class="border-t border-gray-700"><td class="py-2">${p.userId}</td><td class="py-2">${p.senderName}</td><td class="py-2">${p.amount.toLocaleString()}원</td><td class="py-2"><span class="px-2 py-1 rounded text-xs ${p.status==="COMPLETED"?"bg-green-600":"p.status==="PENDING"?"bg-yellow-600":"bg-red-600"}">${p.status}</span></td><td class="py-2 text-gray-400">${new Date(p.createdAt).toLocaleString("ko-KR")}</td><td class="py-2">${p.status==="PENDING"?`<button onclick="approvePayment("${p.id}")" class="text-green-400 hover:underline">승인</button> | <button onclick="rejectPayment("${p.id}")" class="text-red-400 hover:underline">거절</button>`:"-"}</td></tr>`).join("");}
+async function loadReceipts(){const search=document.getElementById("receiptSearch").value;const r=await fetch(`/api/logs/receipts?search=${search}&limit=20&offset=${receiptsPage*20}`);const d=await r.json();document.getElementById("receiptsList").innerHTML=d.receipts.map(r=>`<tr class="border-t border-gray-700"><td class="py-2">${r.userId}</td><td class="py-2">${r.product?.name||"알 수 없음"}</td><td class="py-2">${r.paidAmount.toLocaleString()}원</td><td class="py-2">${r.hasReview?"<span class=\"text-green-400\">O</span>":"X"}</td><td class="py-2 text-gray-400">${new Date(r.purchasedAt).toLocaleString("ko-KR")}</td></tr>`).join("");}
+async function approvePayment(id){await fetch(`/api/logs/payments/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"COMPLETED"})});loadPayments();}
+async function rejectPayment(id){await fetch(`/api/logs/payments/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"REJECTED"})});loadPayments();}
+loadPayments();loadReceipts();
+</script>

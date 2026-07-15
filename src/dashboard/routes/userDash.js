@@ -1,0 +1,93 @@
+import express from 'express';
+import { prisma } from '../../../index.js';
+import { isAuthenticated } from '../middleware/auth.js';
+
+const router = express.Router();
+
+// User dashboard
+router.get('/', isAuthenticated, async (req, res) => {
+  res.render('user/dashboard', {
+    user: req.user
+  });
+});
+
+// Get user purchase history
+router.get('/purchases', isAuthenticated, async (req, res) => {
+  try {
+    const receipts = await prisma.receipt.findMany({
+      where: { userId: req.user.id },
+      include: { product: true },
+      orderBy: { purchasedAt: 'desc' }
+    });
+    res.json(receipts);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch purchases' });
+  }
+});
+
+// Get user monthly stats for chart
+router.get('/stats', isAuthenticated, async (req, res) => {
+  try {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    
+    const receipts = await prisma.receipt.findMany({
+      where: {
+        userId: req.user.id,
+        purchasedAt: { gte: sixMonthsAgo }
+      },
+      orderBy: { purchasedAt: 'asc' }
+    });
+    
+    // Group by month
+    const monthlyData = {};
+    receipts.forEach(r => {
+      const monthKey = r.purchasedAt.toISOString().substring(0, 7);
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { count: 0, amount: 0 };
+      }
+      monthlyData[monthKey].count++;
+      monthlyData[monthKey].amount += r.paidAmount;
+    });
+    
+    res.json({
+      user: req.user,
+      monthlyData,
+      totalPurchases: receipts.length,
+      totalSpent: receipts.reduce((sum, r) => sum + r.paidAmount, 0)
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Submit review
+router.post('/reviews', isAuthenticated, async (req, res) => {
+  try {
+    const { receiptId, rating, content } = req.body;
+    
+    const receipt = await prisma.receipt.findFirst({
+      where: { id: receiptId, userId: req.user.id }
+    });
+    
+    if (!receipt) {
+      return res.status(404).json({ error: 'Receipt not found' });
+    }
+    
+    await prisma.receipt.update({
+      where: { id: receiptId },
+      data: { hasReview: true }
+    });
+    
+    // Send review to Discord channel via webhook
+    if (global.sendReviewWebhook) {
+      await global.sendReviewWebhook(req.user, receipt, rating, content);
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to submit review' });
+  }
+});
+
+export default router;

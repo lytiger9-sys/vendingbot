@@ -1,0 +1,53 @@
+<div class="mb-6"><h1 class="text-2xl font-bold">⚙️ 자동충전/로그 설정</h1></div>
+<div class="grid grid-cols-2 gap-6">
+  <div class="bg-gray-800 rounded-lg p-6">
+    <h2 class="text-lg font-bold mb-4">💰 계좌 정보</h2>
+    <div class="space-y-4">
+      <input type="text" id="bankInfo" placeholder="은행명/계좌번호 (예: 국민 123-456-789)" class="w-full p-2 rounded bg-gray-700 border border-gray-600">
+      <input type="number" id="minDeposit" placeholder="최소 입금 금액" class="w-full p-2 rounded bg-gray-700 border border-gray-600">
+      <button onclick="saveSetting("BANK_INFO", document.getElementById("bankInfo").value)" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded">저장</button>
+    </div>
+  </div>
+  <div class="bg-gray-800 rounded-lg p-6">
+    <h2 class="text-lg font-bold mb-4">📝 로그 채널 ID</h2>
+    <div class="space-y-4">
+      <input type="text" id="manualLogChannel" placeholder="수동충전 로그 채널 ID" class="w-full p-2 rounded bg-gray-700 border border-gray-600">
+      <input type="text" id="purchaseLogChannel" placeholder="구매 로그 채널 ID" class="w-full p-2 rounded bg-gray-700 border border-gray-600">
+      <input type="text" id="failLogChannel" placeholder="충전 실패 로그 채널 ID" class="w-full p-2 rounded bg-gray-700 border border-gray-600">
+      <button onclick="saveChannelSettings()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded">저장</button>
+    </div>
+  </div>
+</div>
+<div class="mt-6 bg-gray-800 rounded-lg p-6">
+  <h2 class="text-lg font-bold mb-4">📱 SMS 자동충전 가이드</h2>
+  <div class="flex gap-4 mb-4">
+    <button onclick="showGuide("android")" id="btnAndroid" class="px-4 py-2 bg-green-600 rounded">안드로이드</button>
+    <button onclick="showGuide("ios")" id="btnIos" class="px-4 py-2 bg-gray-600 rounded">아이폰</button>
+  </div>
+  <div id="guideContent" class="bg-gray-700 rounded p-4 text-sm whitespace-pre-wrap"></div>
+</div>
+<script>
+async function loadSettings(){const r=await fetch("/api/settings");const d=await r.json();d.settings.forEach(s=>{const el=document.getElementById(s.key.toLowerCase().replace(/_/g,""));if(el)el.value=s.value;});}
+async function saveSetting(k,v){await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:k,value:v})});alert("저장됨");}
+async function saveChannelSettings(){const ids=["MANUAL_LOG_CHANNEL","PURCHASE_LOG_CHANNEL","FAIL_LOG_CHANNEL"];const vals=[document.getElementById("manualLogChannel").value,document.getElementById("purchaseLogChannel").value,document.getElementById("failLogChannel").value];for(let i=0;i<ids.length;i++){if(vals[i])await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key:ids[i],value:vals[i]})});}alert("저장됨");}
+const androidGuide="<안드로이드 SMS 웹훅 설정>\
+\
+1. SMS Forwarder 앱 설치\
+2. Sender > Web 설정\
+3. URL에 SMS_WEBHOOK_URL 입력\
+4. Payload: {\"content\":\"[SMS 수신 내용: {msg}] (발신자: {phone})\"}\
+5. Rules > SMS 필터 설정\
+6. 입금 문구 포함 시 동작하도록 설정";
+const iosGuide="<아이폰 Shortcuts 설정>\
+\
+1. 단축어 앱 > 자동화 탭\
+2. 메시지 트리거 추가\
+3. 송신자: 은행번호, 내용: 입금\
+4. 동작 추가 > URL\
+5. SMS_WEBHOOK_URL 입력\
+6. Get Contents of URL\
+7. Method: POST, Body: JSON\
+8. Key: content, Value: 메시지 텍스트";
+function showGuide(type){document.getElementById("guideContent").textContent=type==="android"?androidGuide:iosGuide;document.getElementById("btnAndroid").className=type==="android"?"px-4 py-2 bg-green-600 rounded":"px-4 py-2 bg-gray-600 rounded";document.getElementById("btnIos").className=type==="ios"?"px-4 py-2 bg-green-600 rounded":"px-4 py-2 bg-gray-600 rounded";}
+loadSettings();showGuide("android");
+</script>

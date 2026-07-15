@@ -1,0 +1,89 @@
+datasource db {
+  provider = \"sqlite\"
+  url      = \"file:./dev.db\"
+}
+
+generator client {
+  provider = \"prisma-client-js\"
+}
+
+model User {
+  id           String    @id
+  balance      Int       @default(0)
+  totalSpent   Int       @default(0)
+  blacklisted  Boolean   @default(false)
+  lastDaily    DateTime?
+  receipts     Receipt[]
+  payments     Payment[]
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id           Int       @id @default(autoincrement())
+  name         String
+  price        Int
+  description  String?
+  isFixed      Boolean   @default(false)
+  fixedContent String?
+  categoryId   Int
+  category     Category  @relation(fields: [categoryId], references: [id])
+  stocks       Stock[]
+  receipts     Receipt[]
+}
+
+model Stock {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  content   String  
+  isSold    Boolean @default(false)
+}
+
+model Payment {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  amount     Int      
+  points     Int
+  senderName String   
+  status     String   @default(\"PENDING\")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Receipt {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  productId        Int
+  product          Product  @relation(fields: [productId], references: [id])
+  paidAmount       Int
+  deliveredContent String
+  hasReview        Boolean  @default(false)
+  purchasedAt      DateTime @default(now())
+}
+
+model RoleReward {
+  id         Int    @id @default(autoincrement())
+  spentLimit Int
+  roleId     String
+}
+
+model SystemSetting {
+  key   String @id
+  value String
+}
+
+model EmbedSetting {
+  id           String  @id @default(\"main_shop\")
+  title        String  @default(\"?? 자판기에 오신 것을 환영합니다\")
+  description  String  @default(\"아래 버튼을 눌러 원하는 서비스를 이용하세요.\")
+  color        String  @default(\"#5865F2\")
+  imageUrl     String?
+  footerText   String?
+}

@@ -1,0 +1,183 @@
+[역할 정의]
+너는 최고 수준의 풀스택 디스코드 봇 및 웹 개발자야. Node.js 환경에서 작동하는 디스코드 자판기 봇과 강력한 관리자/유저용 통합 웹 대시보드를 구축하려고 해. 아래 요구사항에 맞춰 전체 아키텍처와 코드를 구현해 줘.
+
+[개발 및 구동 환경]
+- 런타임: Node.js (최신 버전, ES Modules 사용)
+- 라이브러리: Discord.js v14+ (컴포넌트 v2 액션 구조 기반 - Buttons, Select Menus, Modals 사용)
+- DB: SQLite (Prisma ORM 연동, 로컬 파일 "dev.db" 사용)
+- 웹 프레임워크: Express 또는 Fastify (Frontend는 React 또는 Next.js 혹은 가벼운 EJS 템플릿 엔진 제안 가능)
+- 환경 변수 (.env):
+  * DISCORD_BOT_TOKEN=봇_토큰
+  * CLIENT_ID=디스코드_클라이언트_아이디
+  * CLIENT_SECRET=디스코드_클라이언트_시크릿
+  * REDIRECT_URI=웹_로그인_리다이렉트_주소 (디스코드 OAuth2 연동)
+  * DASHBOARD_URL=웹_대시보드_주소
+  * SMS_WEBHOOK_URL=입금_문자_수신_디스코드_채널_웹훅
+  * ADMIN_USER_ID=최고_관리자_디스코드_아이디 (.env 파일 내 유일한 최고 권한자 식별용)
+
+[웹 대시보드 UI/UX 및 기능 요구사항]
+
+1. 관리자 전용 대시보드 (디스코드 로그인 시 ADMIN_USER_ID 매칭 판정)
+관리자가 접속하면 다음의 사이드바 메뉴가 나타나야 함:
+① [월간 실적 (홈)]: 
+  - 이번 달 총 매출, 총 충전량, 잘 팔린 제품 등을 요약 카드 형식으로 출력.
+② [역할 지급 설정]: 
+  - 유저의 누적 구매량(spentLimit) 조건과 이에 매칭되어 자동으로 지급될 디스코드 '역할 ID(roleId)'를 입력하여 규칙을 생성/삭제하는 관리 GUI.
+③ [구매/충전 로그]: 
+  - 서버 전체의 구매 내역(Receipt)과 포인트 충전 내역(Payment) 리스트를 실시간 테이블로 제공. 필터링 및 검색 기능 포함.
+④ [자동충전/로그 설정]: 
+  - 관리자 계좌번호 및 은행, 최저 입금 금액을 입력할 인풋란.
+  - 추가로 수동충전 로그, 제품 구매 로그, 충전 실패 로그, 입고 로그 채널의 id를 입력할 인풋란.
+  - 아이폰/안드로이드 토글 및 그에 따른 가이드라인(./아이폰&안드로이드에 따른 자충 가이드라인) 텍스트로 표시
+⑤ [제품 관리]: 
+  - 카테고리 추가/삭제 및 고정형(FIXED)/재고형(STOCK) 제품 등록 관리 화면.
+  - 고정형/재고형 변환은 간편한 토글 스위치 형태여야 하며, 각 상태에 맞게 데이터(고정 텍스트 or 개별 재고 리스트)를 바인딩하고 수정하는 인터페이스 제공.
+  - 고정형이라면 해당 창에 적힌 모든 내용을 구매 시 지급하고, 재고형이라면 줄바꿈 1회당 다른 재고로 구별함.
+2. 유저 전용 대시보드 (일반 유저 로그인 시)
+유저가 로그인하면 본인만의 데이터를 직관적인 UI로 제공해야 함:
+- [구매 내역 요약 차트]: 본인의 월별 구매 횟수 및 누적 소비 트렌드를 한눈에 보기 쉬운 차트(예: Chart.js 또는 Recharts 기반)로 시각화하여 표시.
+- [구매 아이템 목록 테이블]:
+  * 컬럼 구성: 구매 제품/개수 | 결제 가격 | 제공 정보(deliveredContent) | 후기 작성 버튼
+  * 제공 정보 필드에는 디스코드 DM 수신 실패 시에도 아이템 핀번호나 정보를 언제든 안전하게 수령할 수 있도록 실제 지급 데이터가 노출되어야 함.
+  * 후기 작성 버튼 클릭 시 별도 팝업/모달이 실행되어 평점과 후기 내용을 남길 수 있어야 하며, 저장 시 지정된 디스코드 후기 채널로 예쁘게 전송되어야 함.
+
+[봇 기능 및 명령어 연동 요구사항]
+
+1. 명령어 셋:
+- `/수동충전 [유저] [금액]`: 지정 유저 잔고 수정 (양수/음수 차감 가능, 음수 도달 예방 예외 처리 필수).
+- `/잔액보기 [유저]`: 대상 유저의 잔액 조회.
+- `/웹패널`: .env의 DASHBOARD_URL로 이동할 수 있는 깔끔한 컴포넌트 v2 링크 버튼 제공.
+- `/임베드 게시`:
+- `/임베드 게시`: 
+  * 실행 시, DB(`EmbedSetting`)에 저장되어 있는 임베드 설정을 불러와서 `EmbedBuilder`를 통해 디스코드용 임베드를 생성함.
+  * 임베드 하단에는 항상 고정된 4개의 버튼 컴포넌트(ActionRow)가 포함되어야 하며, 각 버튼의 인터랙션(Interaction)은 다음과 같이 정밀하게 작동해야 함:
+
+    ① [입금] 버튼 (customId: "btn_deposit"):
+      - 클릭 시 디스코드 모달(Modal) 창을 생성하여 보여줌.
+      - 입력 필드: '입금자명(텍스트 입력)' 및 '입금 금액(숫자 입력)'.
+      - 유저가 모달을 제출(ModalSubmitInteraction)하면 DB의 Payment 테이블에 status="PENDING"으로 신청 건을 생성하고, 유저에게 "신청이 완료되었습니다. 설정된 은행으로 계좌 이체를 진행해 주세요." 메시지를 본인만 보이게(Ephemerally) 전송함.
+      - 웹사이트에서 관리자가 지정한 최저입금금액 미만의 금액은 모달 처리가 불가능하도록 막음.
+
+    ② [제품] 버튼 (customId: "btn_products"):
+      - 클릭 시 현재 DB에 등록된 카테고리(`Category`)들을 옵션으로 가진 디스코드 셀렉트 메뉴(Select Menu, customId: "select_category")를 하단에 즉시 띄워줌(Ephemerally로 유저 본인에게만 보이게 처리).
+      - 유저가 특정 카테고리를 선택하면, 해당 카테고리에 속한 제품(`Product`) 리스트를 다시 셀렉트 메뉴(customId: "select_product")로 변경해 보여줌.
+      - 최종 제품을 선택하면 제품의 이름, 가격, 설명 및 [구매하기] 버튼이 담긴 임베드를 출력하고, 구매하기 클릭 시 잔액 검증 후 고정형/재고형 타입에 맞게 구매 처리 및 DM 발송 로직을 실행함.
+
+    ③ [내정보] 버튼 (customId: "btn_my_info"):
+      - 클릭 시 현재 본인의 잔고(balance)를 유저 본인에게만 보이게(Ephemerally) 전송함.
+
+    ④ [후기] 버튼 (customId: "btn_review_info"):
+      - 클릭 시 "후기 작성 및 구매 내역 확인은 웹패널에서 가능합니다!"라는 안내 문구와 함께 웹사이트로 즉시 이동할 수 있는 웹 대시보드 링크 버튼(Link Button)이 포함된 메시지를 본인에게만 보이게(Ephemerally) 전송함.
+    
+    ⑤ [웹사이트] 버튼
+      - 메인 홈페이지로 이동할 수 있는 링크 제공하기(Ephemeral 메시지)
+
+2. 자동 충전 로직 오류 개선:
+- 디스코드 SMS 웹훅 채널로 입금 문자 발생 시, 동명이인 및 동액 중복 결제 오류를 방지하기 위한 대기열 락(Lock) 또는 안전한 예외처리(중복 감지 시 PENDING 유지 및 관리자 알림) 로직을 백엔드에 필수 반영해 줘.
+- 유저가 제품 구매 완료 시 대시보드에 설정된 규칙(spentLimit)을 조회하여 자동으로 디스코드 역할을 지급하는 백엔드 트리거 로직을 구현해 줘.
+- (곧 보내줄 메시지 예시를 보고 파싱해야함)
+
+[코드 구성 및 작성]
+- 프로젝트 구조를 깔끔한 ESM 모듈 기반 Node.js 구조로 나눠 작성해 주고, 특히 위 대시보드의 백엔드 API 라우터 컨트롤러와 봇의 Interaction 이벤트 감지 로직의 핵심부를 정밀하게 구현해 줘.
+- 유지보수 및 직관성이 좋도록 기능별로 파일이나 폴더를 나눠줘.
+- 모든 임베드는 컴포넨트 v2를 활용해서 만들어줘.
+
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. 유저 테이블
+model User {
+  id           String    @id // 디스코드 유저 ID
+  balance      Int       @default(0)
+  totalSpent   Int       @default(0) // 누적 구매 금액 (역할 지급 세그먼트용)
+  blacklisted  Boolean   @default(false)
+  lastDaily    DateTime?
+  receipts     Receipt[]
+  payments     Payment[]
+}
+
+// 2. 카테고리 테이블
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+// 3. 제품 테이블 (웹에서 토글로 고정형/재고형 설정 가능)
+model Product {
+  id           Int       @id @default(autoincrement())
+  name         String
+  price        Int
+  description  String?
+  isFixed      Boolean   @default(false) // true = 고정형, false = 재고형
+  fixedContent String?   // 고정형 데이터
+  categoryId   Int
+  category     Category  @relation(fields: [categoryId], references: [id])
+  stocks       Stock[]
+  receipts     Receipt[]
+}
+
+// 4. 개별 재고 테이블 (재고형 전용)
+model Stock {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  content   String  
+  isSold    Boolean @default(false)
+}
+
+// 5. 충전 테이블 (웹훅 기반 자동충전 매칭용)
+model Payment {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  amount      Int      
+  points      Int      
+  senderName  String   
+  status      String   @default("PENDING") 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 6. 영수증 테이블
+model Receipt {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  productId        Int
+  product          Product  @relation(fields: [productId], references: [id])
+  paidAmount       Int
+  deliveredContent String   // DM 실패 대비용 실제 지급된 상품 정보 기록
+  hasReview        Boolean  @default(false) // 후기 작성 여부
+  purchasedAt      DateTime @default(now())
+}
+
+// 7. 누적 구매량에 따른 자동 역할 지급 설정 테이블
+model RoleReward {
+  id         Int    @id @default(autoincrement())
+  spentLimit Int    // 기준 누적 금액 (예: 누적 50,000원 이상)
+  roleId     String // 지급할 디스코드 역할 ID
+}
+
+// 8. 웹 설정 및 임베드 설정을 아우르는 전역 설정 테이블
+model SystemSetting {
+  key   String @id
+  value String
+}
+
+// 9. 웹사이트에서 완벽하게 제어할 상점 메인 임베드 상세 설정 테이블
+model EmbedSetting {
+  id           String  @id @default("main_shop")
+  title        String  @default("🛒 자판기에 오신 것을 환영합니다")
+  description  String  @default("아래 버튼을 눌러 원하는 서비스를 이용하세요.")
+  color        String  @default("#5865F2") // HEX 색상 코드 (예: #5865F2)
+  imageUrl     String? // 메인 큰 이미지 URL
+  footerText   String? // 하단 푸터 텍스트
+}
