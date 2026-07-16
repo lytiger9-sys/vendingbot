@@ -1,32 +1,32 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>자판기 봇 대시보드</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
-  <div class="flex">
-    <aside class="w-64 bg-gray-800 min-h-screen p-6 fixed">
-      <h1 class="text-xl font-bold mb-8 text-blue-400">자판기 봇</h1>
-      <nav class="space-y-2">
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <h1 class="sidebar-title">자판기 봇</h1>
+      <nav class="sidebar-nav">
         <% if (isAdmin) { %>
-        <a href="/admin" class="block p-3 rounded hover:bg-gray-700">📊 월간 실적</a>
-        <a href="/admin/roles" class="block p-3 rounded hover:bg-gray-700">🎭 역할 지급</a>
-        <a href="/admin/logs" class="block p-3 rounded hover:bg-gray-700">📜 로그</a>
-        <a href="/admin/settings" class="block p-3 rounded hover:bg-gray-700">⚙️ 설정</a>
-        <a href="/admin/products" class="block p-3 rounded hover:bg-gray-700">📦 제품</a>
+        <a href="/admin" class="nav-link">📊 월간 실적</a>
+        <a href="/admin/roles" class="nav-link">🎭 역할 지급</a>
+        <a href="/admin/logs" class="nav-link">📜 로그</a>
+        <a href="/admin/settings" class="nav-link">⚙️ 설정</a>
+        <a href="/admin/products" class="nav-link">📦 제품</a>
         <% } else { %>
-        <a href="/dashboard" class="block p-3 rounded hover:bg-gray-700">📊 내 통계</a>
+        <a href="/dashboard" class="nav-link">📊 내 통계</a>
         <% } %>
       </nav>
-      <div class="absolute bottom-6">
-        <div class="text-sm mb-2">ID: <%= user.id %></div>
-        <a href="/auth/logout" class="text-red-400 hover:text-red-300">로그아웃</a>
+      <div class="sidebar-footer">
+        <div class="user-id">ID: <%= user.id %></div>
+        <a href="/auth/logout" class="logout-link">로그아웃</a>
       </div>
     </aside>
-    <main class="flex-1 ml-64 p-8">
+    <main class="main-content">
       <%- body %>
     </main>
   </div>

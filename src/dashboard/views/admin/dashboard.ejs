@@ -1,9 +1,39 @@
-<div class="mb-8"><h1 class="text-3xl font-bold">📊 월간 실적</h1></div>
-<div class="grid grid-cols-4 gap-6 mb-8">
-  <div class="bg-gray-800 p-6 rounded-lg"><div class="text-gray-400">총 매출</div><div class="text-3xl font-bold text-green-400" id="monthlySales">로딩중...</div></div>
-  <div class="bg-gray-800 p-6 rounded-lg"><div class="text-gray-400">총 충전</div><div class="text-3xl font-bold text-blue-400" id="monthlyRecharge">로딩중...</div></div>
-  <div class="bg-gray-800 p-6 rounded-lg"><div class="text-gray-400">판매 건수</div><div class="text-3xl font-bold text-yellow-400" id="salesCount">로딩중...</div></div>
-  <div class="bg-gray-800 p-6 rounded-lg"><div class="text-gray-400">충전 건수</div><div class="text-3xl font-bold text-purple-400" id="rechargeCount">로딩중...</div></div>
+<div class="mb-8">
+  <h1 class="text-3xl font-bold">📊 월간 실적</h1>
 </div>
-<div class="bg-gray-800 rounded-lg p-6"><h2 class="text-xl font-bold mb-4">🏆 인기 제품</h2><table class="w-full"><thead><tr class="text-left text-gray-400"><th class="pb-3">제품명</th><th class="pb-3">판매건수</th><th class="pb-3">총매출</th></tr></thead><tbody id="topProducts"><tr><td colspan="3" class="text-gray-400">로딩중...</td></tr></tbody></table></div>
-<script>async function loadStats(){const r=await fetch("/admin/stats");const d=await r.json();document.getElementById("monthlySales").textContent=(d.monthlySales||0).toLocaleString()+"원";document.getElementById("monthlyRecharge").textContent=(d.monthlyRecharge||0).toLocaleString()+"원";document.getElementById("salesCount").textContent=d.salesCount||0;document.getElementById("rechargeCount").textContent=d.rechargeCount||0;const tb=document.getElementById("topProducts");if(d.topProducts&&d.topProducts.length>0){tb.innerHTML=d.topProducts.map(p=>`<tr class="border-t border-gray-700"><td class="py-3">${p.product?.name||"알 수 없음"}</td><td class="py-3">${p._count}</td><td class="py-3">${(p._sum.paidAmount||0).toLocaleString()}원</td></tr>`).join("");}}loadStats();</script>
+<div class="grid grid-cols-4 gap-6 mb-8">
+  <div class="bg-gray-800 p-6 rounded-lg">
+    <div class="text-gray-400">총 매출</div>
+    <div class="text-3xl font-bold text-green-400" id="monthlySales">로딩중...</div>
+  </div>
+  <div class="bg-gray-800 p-6 rounded-lg">
+    <div class="text-gray-400">총 충전</div>
+    <div class="text-3xl font-bold text-blue-400" id="monthlyRecharge">로딩중...</div>
+  </div>
+  <div class="bg-gray-800 p-6 rounded-lg">
+    <div class="text-gray-400">판매 건수</div>
+    <div class="text-3xl font-bold text-yellow-400" id="salesCount">로딩중...</div>
+  </div>
+  <div class="bg-gray-800 p-6 rounded-lg">
+    <div class="text-gray-400">충전 건수</div>
+    <div class="text-3xl font-bold text-purple-400" id="rechargeCount">로딩중...</div>
+  </div>
+</div>
+<div class="bg-gray-800 rounded-lg p-6">
+  <h2 class="text-xl font-bold mb-4">🏆 인기 제품</h2>
+  <table class="w-full">
+    <thead>
+      <tr class="text-left text-gray-400">
+        <th class="pb-3">제품명</th>
+        <th class="pb-3">판매건수</th>
+        <th class="pb-3">총매출</th>
+      </tr>
+    </thead>
+    <tbody id="topProducts">
+      <tr>
+        <td colspan="3" class="text-gray-400">로딩중...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<script>async function loadStats() { const r = await fetch("/admin/stats"); const d = await r.json(); document.getElementById("monthlySales").textContent = (d.monthlySales || 0).toLocaleString() + "원"; document.getElementById("monthlyRecharge").textContent = (d.monthlyRecharge || 0).toLocaleString() + "원"; document.getElementById("salesCount").textContent = d.salesCount || 0; document.getElementById("rechargeCount").textContent = d.rechargeCount || 0; const tb = document.getElementById("topProducts"); if (d.topProducts && d.topProducts.length > 0) { tb.innerHTML = d.topProducts.map(p => `<tr class="border-t border-gray-700"><td class="py-3">${p.product?.name || "알 수 없음"}</td><td class="py-3">${p._count}</td><td class="py-3">${(p._sum.paidAmount || 0).toLocaleString()}원</td></tr>`).join(""); } } loadStats();</script>

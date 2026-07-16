@@ -1,10 +1,10 @@
 datasource db {
-  provider = \"sqlite\"
-  url      = \"file:./dev.db\"
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 generator client {
-  provider = \"prisma-client-js\"
+  provider = "prisma-client-js"
 }
 
 model User {
@@ -51,7 +51,7 @@ model Payment {
   amount     Int      
   points     Int
   senderName String   
-  status     String   @default(\"PENDING\")
+  status     String   @default("PENDING")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -80,10 +80,10 @@ model SystemSetting {
 }
 
 model EmbedSetting {
-  id           String  @id @default(\"main_shop\")
+  id           String  @id @default("main_shop")
   title        String  @default("자판기에 오신 것을 환영합니다")
   description  String  @default("아래 버튼을 눌러 원하는 서비스를 이용하세요.")
-  color        String  @default(\"#5865F2\")
+  color        String  @default("#5865F2")
   imageUrl     String?
   footerText   String?
 }
