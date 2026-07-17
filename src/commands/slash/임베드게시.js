@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } from "discord.js";
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, MessageFlags } from "discord.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -11,12 +11,16 @@ export default {
         .setRequired(false)
     ),
   async execute(interaction, client, prisma) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     
-    const settings = await prisma.embedSetting.findUnique({ where: { id: "main_shop" } }) || {
-      title: "상점에 오신 것을 환영합니다",
-      description: "아래 버튼을 눌러 원하는 서비스를 이용하세요.",
-      color: "#5865F2"
+    const dbSettings = await prisma.embedSetting.findUnique({ where: { id: "main_shop" } });
+    
+    const settings = {
+      title: dbSettings?.title || '상점에 오신 것을 환영합니다',
+      description: dbSettings?.description || '아래 버튼을 눌러 원하는 서비스를 이용하세요.',
+      color: dbSettings?.color || '#5865F2',
+      footerText: dbSettings?.footerText || null,
+      imageUrl: dbSettings?.imageUrl || null
     };
     
     const targetChannel = interaction.options.getChannel("채널") || interaction.channel;

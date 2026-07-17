@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>임베드 설정</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <h1 class="sidebar-title">🛒 자판기 봇</h1>
+      <nav class="sidebar-nav">
+        <a href="/admin" class="nav-link"><span>📊</span> 월간 실적</a>
+        <a href="/admin/products" class="nav-link"><span>📦</span> 제품</a>
+        <a href="/admin/logs" class="nav-link"><span>📜</span> 로그</a>
+        <a href="/admin/settings" class="nav-link"><span>⚙️</span> 설정</a>
+        <a href="/admin/embed" class="nav-link active"><span>💬</span> 임베드</a>
+        <a href="/admin/roles" class="nav-link"><span>🎭</span> 역할 지급</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-id">ID: <%= user.id %></div>
+        <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
+        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="title-md">💬 임베드 설정</h1>
+      </div>
+
+      <div class="grid-2">
+        <!-- 에디터 패널 -->
+        <div class="card">
+          <div class="card-header">📝 임베드 편집</div>
+          
+          <div class="input-group">
+            <label class="input-label">제목</label>
+            <input type="text" id="embedTitle" placeholder="자판기에 오신 것을 환영합니다" class="input">
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">설명</label>
+            <textarea id="embedDescription" placeholder="아래 버튼을 눌러 원하는 서비스를 이용하세요." class="input textarea" rows="4"></textarea>
+          </div>
+
+          <div class="grid-2">
+            <div class="input-group">
+              <label class="input-label">색상 (Hex)</label>
+              <div class="flex gap-2">
+                <input type="color" id="embedColorPicker" value="#5865F2" class="color-picker">
+                <input type="text" id="embedColor" placeholder="#5865F2" class="input" style="flex: 1;">
+              </div>
+            </div>
+            <div class="input-group">
+              <label class="input-label">푸터 텍스트</label>
+              <input type="text" id="embedFooter" placeholder="자판기 봇" class="input">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">썸네일 URL (선택)</label>
+            <input type="text" id="embedThumbnail" placeholder="https://example.com/thumb.png" class="input">
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">이미지 URL (선택)</label>
+            <input type="text" id="embedImage" placeholder="https://example.com/image.png" class="input">
+          </div>
+
+          <button onclick="saveEmbed()" id="saveBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+            💾 저장하기
+          </button>
+        </div>
+
+        <!-- 미리보기 패널 -->
+        <div class="card">
+          <div class="card-header">👁️ Discord 미리보기</div>
+          <div id="embedPreview" class="embed-preview">
+            <!-- 미리보기 영역 -->
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-6">
+        <div class="card-header">🎯 테스트</div>
+        <div class="input-group">
+          <label class="input-label">채널 ID</label>
+          <input type="text" id="testChannelId" placeholder="테스트 메시지를 보낼 채널 ID" class="input">
+        </div>
+        <button onclick="testEmbed()" class="btn btn-success" id="testBtn">
+          📤 이 채널로 임베드 보내기
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <style>
+    .textarea { resize: vertical; min-height: 100px; }
+    .color-picker { width: 50px; height: 40px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; }
+    .embed-preview {
+      background: #36393f;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .embed-item {
+      background: #2f3136;
+      border-left: 4px solid #5865F2;
+      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      color: #dcddde;
+    }
+    .embed-item .embed-title {
+      color: #fff;
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .embed-item .embed-desc {
+      color: #b9bbbe;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .embed-item .embed-footer {
+      color: #72767d;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    .embed-item .embed-thumbnail {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      float: right;
+      margin-left: 1rem;
+    }
+    .embed-item .embed-image {
+      width: 100%;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+    }
+  </style>
+
+  <script>
+    const preview = document.getElementById('embedPreview');
+    const colorPicker = document.getElementById('embedColorPicker');
+    const colorInput = document.getElementById('embedColor');
+    const saveBtn = document.getElementById('saveBtn');
+    
+    // 원본 값 저장
+    let originalValues = {};
+
+    // 색상 동기화
+    colorPicker.addEventListener('input', (e) => {
+      colorInput.value = e.target.value;
+      updatePreview();
+      checkChanges();
+    });
+    colorInput.addEventListener('input', (e) => {
+      if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+        colorPicker.value = e.target.value;
+        updatePreview();
+        checkChanges();
+      }
+    });
+
+    // 변경사항 확인
+    function checkChanges() {
+      const current = {
+        title: document.getElementById('embedTitle').value,
+        description: document.getElementById('embedDescription').value,
+        color: document.getElementById('embedColor').value,
+        footerText: document.getElementById('embedFooter').value,
+        thumbnailUrl: document.getElementById('embedThumbnail').value,
+        imageUrl: document.getElementById('embedImage').value
+      };
+      
+      const hasChanges = Object.keys(current).some(key => current[key] !== originalValues[key]);
+      
+      if (hasChanges) {
+        saveBtn.className = 'btn btn-primary';
+        saveBtn.innerHTML = '💾 저장하기';
+      } else {
+        saveBtn.className = 'btn';
+        saveBtn.style.background = '#666';
+        saveBtn.style.color = '#ccc';
+        saveBtn.innerHTML = '✓ 변경사항 없음';
+      }
+    }
+
+    // 미리보기 업데이트
+    function updatePreview() {
+      const title = document.getElementById('embedTitle').value || '제목';
+      const desc = document.getElementById('embedDescription').value || '설명';
+      const color = colorInput.value || '#5865F2';
+      const footer = document.getElementById('embedFooter').value;
+      const thumb = document.getElementById('embedThumbnail').value;
+      const image = document.getElementById('embedImage').value;
+
+      let html = `<div class="embed-item" style="border-left-color: ${color};">`;
+      html += `<div class="embed-title">${escapeHtml(title)}</div>`;
+      if (thumb) html += `<img src="${escapeHtml(thumb)}" class="embed-thumbnail" onerror="this.style.display='none'">`;
+      html += `<div class="embed-desc">${escapeHtml(desc)}</div>`;
+      if (footer) html += `<div class="embed-footer">${escapeHtml(footer)}</div>`;
+      if (image) html += `<img src="${escapeHtml(image)}" class="embed-image" onerror="this.style.display='none'">`;
+      html += `</div>`;
+      preview.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 입력 변경 시 미리보기 업데이트
+    ['embedTitle', 'embedDescription', 'embedFooter', 'embedThumbnail', 'embedImage'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        updatePreview();
+        checkChanges();
+      });
+    });
+
+    // 설정 로드
+    async function loadEmbed() {
+      try {
+        const r = await fetch('/api/settings/embed');
+        const d = await r.json();
+        
+        originalValues = {
+          title: d.embedSettings?.title || '',
+          description: d.embedSettings?.description || '',
+          color: d.embedSettings?.color || '#5865F2',
+          footerText: d.embedSettings?.footerText || '',
+          thumbnailUrl: d.embedSettings?.thumbnailUrl || '',
+          imageUrl: d.embedSettings?.imageUrl || ''
+        };
+        
+        document.getElementById('embedTitle').value = originalValues.title;
+        document.getElementById('embedDescription').value = originalValues.description;
+        document.getElementById('embedColor').value = originalValues.color;
+        document.getElementById('embedColorPicker').value = originalValues.color;
+        document.getElementById('embedFooter').value = originalValues.footerText;
+        document.getElementById('embedThumbnail').value = originalValues.thumbnailUrl;
+        document.getElementById('embedImage').value = originalValues.imageUrl;
+        
+        updatePreview();
+        checkChanges();
+      } catch (e) {
+        console.error('설정 로드 실패:', e);
+      }
+    }
+
+    // 저장
+    async function saveEmbed() {
+      const data = {
+        title: document.getElementById('embedTitle').value,
+        description: document.getElementById('embedDescription').value,
+        color: document.getElementById('embedColor').value,
+        footerText: document.getElementById('embedFooter').value,
+        thumbnailUrl: document.getElementById('embedThumbnail').value,
+        imageUrl: document.getElementById('embedImage').value
+      };
+
+      try {
+        const r = await fetch('/api/settings/embed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (r.ok) {
+          // 저장 후 원본값 업데이트
+          originalValues = { ...data };
+          checkChanges();
+          toast('임베드 설정이 저장되었습니다.', 'success');
+        } else {
+          throw new Error('저장 실패');
+        }
+      } catch (e) {
+        toast('저장에 실패했습니다.', 'error');
+      }
+    }
+
+    // 테스트 보내기
+    async function testEmbed() {
+      const channelId = document.getElementById('testChannelId').value.trim();
+      if (!channelId) {
+        toast('채널 ID를 입력해주세요.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('testBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ 전송 중...';
+
+      const data = {
+        title: document.getElementById('embedTitle').value,
+        description: document.getElementById('embedDescription').value,
+        color: document.getElementById('embedColor').value,
+        footerText: document.getElementById('embedFooter').value,
+        thumbnailUrl: document.getElementById('embedThumbnail').value,
+        imageUrl: document.getElementById('embedImage').value
+      };
+
+      try {
+        const r = await fetch('/api/settings/embed/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data, channelId })
+        });
+        const result = await r.json();
+        if (result.success) {
+          toast('테스트 메시지를 전송했습니다!', 'success');
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (e) {
+        toast('전송 실패: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📤 이 채널로 임베드 보내기';
+      }
+    }
+
+    loadEmbed();
+  </script>
+  <script src="/js/common.js"></script>
+</body>
+</html>

@@ -18,6 +18,7 @@
         <a href="/admin/products" class="nav-link"><span>📦</span> 제품</a>
         <a href="/admin/logs" class="nav-link active"><span>📜</span> 로그</a>
         <a href="/admin/settings" class="nav-link"><span>⚙️</span> 설정</a>
+        <a href="/admin/embed" class="nav-link"><span>💬</span> 임베드</a>
         <a href="/admin/roles" class="nav-link"><span>🎭</span> 역할 지급</a>
       </nav>
       <div class="sidebar-footer">
@@ -65,7 +66,7 @@
   <div id="paymentsPagination" class="mt-4 flex gap-2 justify-center"></div>
 </div>
 
-<div id="receiptsTab" class="card hidden">
+<div id="receiptsTab" class="card" style="display: none;">
   <div class="flex gap-4 mb-4">
     <input type="text" id="receiptSearch" placeholder="검색 (유저ID/제품ID)" class="input">
     <button onclick="loadReceipts()" class="btn btn-primary">검색</button>
@@ -89,11 +90,11 @@
 <script>
   let paymentsPage = 0, receiptsPage = 0;
     function showTab(t) {
-    document.getElementById("paymentsTab").classList.toggle("hidden", t !== "payments");
-    document.getElementById("receiptsTab").classList.toggle("hidden", t !== "receipts");
-    document.getElementById("tabPayments").className = t === "payments" ? "btn btn-primary" : "btn btn-outline";
-    document.getElementById("tabReceipts").className = t === "receipts" ? "btn btn-primary" : "btn btn-outline";
-  }
+      document.getElementById("paymentsTab").style.display = t === "payments" ? "block" : "none";
+      document.getElementById("receiptsTab").style.display = t === "receipts" ? "block" : "none";
+      document.getElementById("tabPayments").className = t === "payments" ? "btn btn-primary" : "btn btn-outline";
+      document.getElementById("tabReceipts").className = t === "receipts" ? "btn btn-primary" : "btn btn-outline";
+    }
 
   async function loadPayments() {
     const status = document.getElementById("paymentStatusFilter").value;
@@ -117,11 +118,14 @@
     }).join("");
   }
 
-  async function loadReceipts() {
+    async function loadReceipts() {
     const search = document.getElementById("receiptSearch").value;
     const r = await fetch(`/api/logs/receipts?search=${search}&limit=20&offset=${receiptsPage * 20}`);
     const d = await r.json();
     document.getElementById("receiptsList").innerHTML = d.receipts.map(r => `
+      <tr>
+        <td>${r.userId || '-'}</td>
+        <td>${r.product?.name || r.productId || '-'}</td>
         <td>${r.paidAmount.toLocaleString()}원</td>
         <td>${r.hasReview ? "<span class=\"text-success\">O</span>" : "X"}</td>
         <td class="text-muted">${new Date(r.purchasedAt || r.createdAt).toLocaleString("ko-KR")}</td>
@@ -148,6 +152,10 @@
     loadPayments();
   }
 
-  loadPayments();
-  loadReceipts();
+        loadPayments();
 </script>
+<script src="/js/common.js"></script>
+    </main>
+  </div>
+</body>
+</html>

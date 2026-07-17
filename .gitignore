@@ -2,3 +2,5 @@
 /src/.env.example
 /src/.env
 .env
+/prisma/migrations
+/prisma/dev.db

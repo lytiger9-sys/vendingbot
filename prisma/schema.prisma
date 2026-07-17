@@ -86,4 +86,5 @@ model EmbedSetting {
   color        String  @default("#5865F2")
   imageUrl     String?
   footerText   String?
+  thumbnailUrl String?
 }

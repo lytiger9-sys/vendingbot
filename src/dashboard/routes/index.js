@@ -1,6 +1,5 @@
 import express from 'express';
 import { prisma } from '../../index.js';
-
 import { isAuthenticated, isAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -66,6 +65,15 @@ router.get('/admin/roles', isAuthenticated, isAdmin, async (req, res) => {
     user: req.user,
     isAdmin: true,
     page: 'roles'
+  });
+});
+
+// Admin - Embed page
+router.get('/admin/embed', isAuthenticated, isAdmin, async (req, res) => {
+  res.render('admin/embed', {
+    user: req.user,
+    isAdmin: true,
+    page: 'embed'
   });
 });
 
