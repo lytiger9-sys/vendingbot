@@ -9,5 +9,6 @@ export function isAdmin(req, res, next) {
   if (req.user && req.user.id === process.env.ADMIN_USER_ID) {
     return next();
   }
-  res.status(403).json({ error: 'Admin access required' });
+  // Admin이 아니면 일반 대시보드로 리다이렉트
+  res.redirect('/');
 }

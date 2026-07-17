@@ -1,33 +1,81 @@
-<div class="mb-6"><h1 class="text-2xl font-bold">📊 내 구매 통계</h1></div>
-<div class="grid grid-cols-3 gap-6 mb-8">
-  <div class="bg-gray-800 rounded-lg p-6"><div class="text-gray-400">현재 잔액</div><div class="text-3xl font-bold text-green-400" id="balance">로딩중...</div></div>
-  <div class="bg-gray-800 rounded-lg p-6"><div class="text-gray-400">총 구매 횟수</div><div class="text-3xl font-bold text-blue-400" id="totalCount">로딩중...</div></div>
-  <div class="bg-gray-800 rounded-lg p-6"><div class="text-gray-400">총 소비 금액</div><div class="text-3xl font-bold text-yellow-400" id="totalSpent">로딩중...</div></div>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 대시보드</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <h1 class="sidebar-title">🛒 자판기 봇</h1>
+      <nav class="sidebar-nav">
+        <a href="/dashboard" class="nav-link active"><span>📊</span> 내 통계</a>
+        <a href="/dashboard/purchases" class="nav-link"><span>🛍️</span> 구매 내역</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-id">ID: <%= user.id %></div>
+        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+      </div>
+    </aside>
+    <main class="main-content">
+<div class="page-header">
+  <h1 class="title-md">📊 내 구매 통계</h1>
 </div>
-<div class="bg-gray-800 rounded-lg p-6 mb-6">
-  <h2 class="text-xl font-bold mb-4">📈 월별 구매 추이</h2>
+
+<div class="stats-grid">
+  <div class="stat-card success">
+    <div class="stat-icon">💰</div>
+    <div class="stat-value text-success" id="balance">로딩중...</div>
+    <div class="stat-label">현재 잔액</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🛒</div>
+    <div class="stat-value text-primary" id="totalCount">로딩중...</div>
+    <div class="stat-label">총 구매 횟수</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💸</div>
+    <div class="stat-value text-warning" id="totalSpent">로딩중...</div>
+    <div class="stat-label">총 소비 금액</div>
+  </div>
+</div>
+
+<div class="card mb-6">
+  <div class="card-header">📈 월별 구매 추이</div>
   <canvas id="chart" height="100"></canvas>
 </div>
-<div class="bg-gray-800 rounded-lg p-6">
-  <h2 class="text-xl font-bold mb-4">🛍️ 최근 구매 내역</h2>
-  <table class="w-full">
-    <thead>
-      <tr class="text-left text-gray-400">
-        <th class="pb-3">제품</th>
-        <th class="pb-3">가격</th>
-        <th class="pb-3">일시</th>
-        <th class="pb-3">후기</th>
-      </tr>
-    </thead>
-    <tbody id="purchases"></tbody>
-  </table>
+
+<div class="card">
+  <div class="card-header">🛍️ 최근 구매 내역</div>
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>제품</th>
+          <th>가격</th>
+          <th>일시</th>
+          <th>후기</th>
+        </tr>
+      </thead>
+      <tbody id="purchases"></tbody>
+    </table>
+  </div>
 </div>
-<div id="reviewModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-  <div class="bg-gray-800 rounded-lg p-6 w-96">
-    <h3 class="text-lg font-bold mb-4">⭐ 후기 작성</h3>
-    <div class="mb-4">
-      <label class="block text-sm text-gray-400 mb-2">평점</label>
-      <select id="rating" class="w-full p-2 rounded bg-gray-700 border border-gray-600">
+
+<div id="reviewModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      ⭐ 후기 작성
+      <button onclick="closeReviewModal()" class="modal-close">×</button>
+    </div>
+    <div class="input-group">
+      <label class="input-label">평점</label>
+      <select id="rating" class="input">
         <option value="5">★★★★★</option>
         <option value="4">★★★★☆</option>
         <option value="3">★★★☆☆</option>
@@ -35,14 +83,14 @@
         <option value="1">★☆☆☆☆</option>
       </select>
     </div>
-    <div class="mb-4">
-      <label class="block text-sm text-gray-400 mb-2">후기 내용</label>
-      <textarea id="reviewContent" class="w-full p-2 rounded bg-gray-700 border border-gray-600 h-24"></textarea>
+    <div class="input-group">
+      <label class="input-label">후기 내용</label>
+      <textarea id="reviewContent" class="input" rows="4" style="resize: vertical;"></textarea>
     </div>
     <input type="hidden" id="reviewReceiptId">
-    <div class="flex gap-2">
-      <button onclick="submitReview()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 rounded">작성완료</button>
-      <button onclick="closeReviewModal()" class="flex-1 py-2 bg-gray-600 hover:bg-gray-500 rounded">취소</button>
+    <div class="modal-footer">
+      <button onclick="closeReviewModal()" class="btn btn-outline">취소</button>
+      <button onclick="submitReview()" class="btn btn-primary">작성완료</button>
     </div>
   </div>
 </div>

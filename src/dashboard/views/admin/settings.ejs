@@ -1,38 +1,69 @@
-<div class="mb-6">
-  <h1 class="text-2xl font-bold">⚙️ 자동충전/로그 설정</h1>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>설정</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <h1 class="sidebar-title">🛒 자판기 봇</h1>
+      <nav class="sidebar-nav">
+        <a href="/admin" class="nav-link"><span>📊</span> 월간 실적</a>
+        <a href="/admin/products" class="nav-link"><span>📦</span> 제품</a>
+        <a href="/admin/logs" class="nav-link"><span>📜</span> 로그</a>
+        <a href="/admin/settings" class="nav-link active"><span>⚙️</span> 설정</a>
+        <a href="/admin/roles" class="nav-link"><span>🎭</span> 역할 지급</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-id">ID: <%= user.id %></div>
+        <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
+        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+      </div>
+    </aside>
+    <main class="main-content">
+<div class="page-header">
+  <h1 class="title-md">⚙️ 자동충전/로그 설정</h1>
 </div>
-<div class="grid grid-cols-2 gap-6">
-  <div class="bg-gray-800 rounded-lg p-6">
-    <h2 class="text-lg font-bold mb-4">💰 계좌 정보</h2>
-    <div class="space-y-4">
-      <input type="text" id="bankInfo" placeholder="은행명/계좌번호 (예: 국민 123-456-789)"
-        class="w-full p-2 rounded bg-gray-700 border border-gray-600">
-      <input type="number" id="minDeposit" placeholder="최소 입금 금액"
-        class="w-full p-2 rounded bg-gray-700 border border-gray-600">
-      <button onclick="saveBankSettings()"
-        class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded">저장</button>
+
+<div class="grid-2 mb-6">
+  <div class="card">
+    <div class="card-header">💰 계좌 정보</div>
+    <div class="input-group">
+      <input type="text" id="bankInfo" placeholder="은행명/계좌번호 (예: 국민 123-456-789)" class="input">
     </div>
+    <div class="input-group">
+      <input type="number" id="minDeposit" placeholder="최소 입금 금액" class="input">
+    </div>
+    <button onclick="saveBankSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
   </div>
-  <div class="bg-gray-800 rounded-lg p-6">
-    <h2 class="text-lg font-bold mb-4">📝 로그 채널 ID</h2>
-    <div class="space-y-4">
-      <input type="text" id="manualLogChannel" placeholder="수동충전 로그 채널 ID"
-        class="w-full p-2 rounded bg-gray-700 border border-gray-600">
-      <input type="text" id="purchaseLogChannel" placeholder="구매 로그 채널 ID"
-        class="w-full p-2 rounded bg-gray-700 border border-gray-600">
-      <input type="text" id="failLogChannel" placeholder="충전 실패 로그 채널 ID"
-        class="w-full p-2 rounded bg-gray-700 border border-gray-600">
-      <button onclick="saveChannelSettings()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded">저장</button>
+  <div class="card">
+    <div class="card-header">📝 로그 채널 ID</div>
+    <div class="input-group">
+      <input type="text" id="manualLogChannel" placeholder="수동충전 로그 채널 ID" class="input">
     </div>
+    <div class="input-group">
+      <input type="text" id="purchaseLogChannel" placeholder="구매 로그 채널 ID" class="input">
+    </div>
+    <div class="input-group">
+      <input type="text" id="failLogChannel" placeholder="충전 실패 로그 채널 ID" class="input">
+    </div>
+    <button onclick="saveChannelSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
   </div>
 </div>
-<div class="mt-6 bg-gray-800 rounded-lg p-6">
-  <h2 class="text-lg font-bold mb-4">📱 SMS 자동충전 가이드</h2>
+
+<div class="card">
+  <div class="card-header">📱 SMS 자동충전 가이드</div>
   <div class="flex gap-4 mb-4">
-    <button onclick="showGuide('android')" id="btnAndroid" class="px-4 py-2 bg-green-600 rounded">안드로이드</button>
-    <button onclick="showGuide('ios')" id="btnIos" class="px-4 py-2 bg-gray-600 rounded">아이폰</button>
+    <button onclick="showGuide('android')" id="btnAndroid" class="btn btn-success">안드로이드</button>
+    <button onclick="showGuide('ios')" id="btnIos" class="btn btn-outline">아이폰</button>
   </div>
-  <div id="guideContent" class="bg-gray-700 rounded p-4 text-sm whitespace-pre-wrap"></div>
+  <div id="guideContent" class="guide-box"></div>
 </div>
 
 <script>
@@ -97,8 +128,6 @@
     }
     alert("로그 채널 설정이 저장되었습니다.");
   }
-
-  // 가이드 텍스트 (가독성을 위해 템플릿 리터럴 백틱(`)으로 수정하였습니다)
   const androidGuide = `<안드로이드 SMS 웹훅 설정>
 
 1. SMS Forwarder 앱 설치
@@ -119,10 +148,10 @@
 7. Method: POST, Body: JSON
 8. Key: content, Value: 메시지 텍스트`;
 
-  function showGuide(type) {
+    function showGuide(type) {
     document.getElementById("guideContent").textContent = type === "android" ? androidGuide : iosGuide;
-    document.getElementById("btnAndroid").className = type === "android" ? "px-4 py-2 bg-green-600 rounded" : "px-4 py-2 bg-gray-600 rounded";
-    document.getElementById("btnIos").className = type === "ios" ? "px-4 py-2 bg-green-600 rounded" : "px-4 py-2 bg-gray-600 rounded";
+    document.getElementById("btnAndroid").className = type === "android" ? "btn btn-success" : "btn btn-outline";
+    document.getElementById("btnIos").className = type === "ios" ? "btn btn-success" : "btn btn-outline";
   }
 
   loadSettings();

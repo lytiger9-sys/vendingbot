@@ -35,6 +35,10 @@ app.use(express.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 app.set('views', './src/dashboard/views');
 
+// Static files
+app.use('/css', express.static('./src/dashboard/public/css'));
+app.use('/js', express.static('./src/dashboard/public/js'));
+
 // Session
 app.use(session({
   secret: process.env.SESSION_SECRET || 'secret',

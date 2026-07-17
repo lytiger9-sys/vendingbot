@@ -1,48 +1,99 @@
-<div class="mb-6">
-  <h1 class="text-2xl font-bold">🛍️ 구매 내역</h1>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>구매 내역</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <h1 class="sidebar-title">🛒 자판기 봇</h1>
+      <nav class="sidebar-nav">
+        <a href="/dashboard" class="nav-link"><span>📊</span> 내 통계</a>
+        <a href="/dashboard/purchases" class="nav-link active"><span>🛍️</span> 구매 내역</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-id">ID: <%= user.id %></div>
+        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+      </div>
+    </aside>
+    <main class="main-content">
+<div class="page-header">
+  <h1 class="title-md">🛍️ 구매 내역</h1>
 </div>
-<div class="bg-gray-800 rounded-lg p-6">
-  <table class="w-full">
-    <thead>
-      <tr class="text-left text-gray-400">
-        <th class="pb-3">제품</th>
-        <th class="pb-3">결제가격</th>
-        <th class="pb-3">제공 내용</th>
-        <th class="pb-3">후기</th>
-        <th class="pb-3">일시</th>
-      </tr>
-    </thead>
-    <tbody id="purchasesBody"></tbody>
-  </table>
+
+<div class="card">
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>제품</th>
+          <th>결제가격</th>
+          <th>제공 내용</th>
+          <th>후기</th>
+          <th>일시</th>
+        </tr>
+      </thead>
+      <tbody id="purchasesBody"></tbody>
+    </table>
+  </div>
 </div>
-<div id="reviewModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-  <div class="bg-gray-800 rounded-lg p-6 w-96">
-    <h3 class="text-lg font-bold mb-4">후기 작성</h3>
-    <div class="mb-4"><label class="block text-sm text-gray-400 mb-2">평점</label><select id="rating"
-        class="w-full p-2 rounded bg-gray-700 border border-gray-600">
+
+<div id="reviewModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      ⭐ 후기 작성
+      <button onclick="closeModal()" class="modal-close">×</button>
+    </div>
+    <div class="input-group">
+      <label class="input-label">평점</label>
+      <select id="rating" class="input">
         <option value="5">★★★★★</option>
         <option value="4">★★★★☆</option>
         <option value="3">★★★☆☆</option>
         <option value="2">★★☆☆☆</option>
         <option value="1">★☆☆☆☆</option>
-      </select></div>
-    <div class="mb-4"><label class="block text-sm text-gray-400 mb-2">후기</label><textarea id="reviewContent"
-        class="w-full p-2 rounded bg-gray-700 border border-gray-600 h-24" placeholder="구매 후기를 남겨주세요..."></textarea>
+      </select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">후기</label>
+      <textarea id="reviewContent" class="input" rows="4" placeholder="구매 후기를 남겨주세요..." style="resize: vertical;"></textarea>
     </div>
     <input type="hidden" id="receiptId">
-    <div class="flex gap-2"><button onclick="submitReview()"
-        class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 rounded">작성완료</button><button onclick="closeModal()"
-        class="flex-1 py-2 bg-gray-600 hover:bg-gray-500 rounded">취소</button></div>
+    <div class="modal-footer">
+      <button onclick="closeModal()" class="btn btn-outline">취소</button>
+      <button onclick="submitReview()" class="btn btn-primary">작성완료</button>
+    </div>
   </div>
 </div>
+
 <script>
   async function load() {
     const r = await fetch("/dashboard/purchases");
     const d = await r.json();
-    document.getElementById("purchasesBody").innerHTML = d.length === 0 ? "<tr><td colspan=5 class=\"text-gray-400 py-4\">구매 내역이 없습니다</td></tr>" : d.map(p => `<tr class=\"border-t border-gray-700\"><td class=\"py-3\">${p.product?.name || "알 수 없음"}</td><td class=\"py-3\">${p.paidAmount.toLocaleString()}원</td><td class=\"py-3 text-sm text-gray-300\">${p.deliveredContent || "-"}</td><td class=\"py-3\">${p.hasReview ? "<span class=\"text-green-400\">완료</span>" : `<button onclick=\"openModal("${p.id}")\" class=\"text-blue-400 hover:underline\">작성하기</button>`}</td><td class=\"py-3 text-gray-400 text-sm\">${new Date(p.purchasedAt).toLocaleString("ko-KR")}</td></tr>`).join("");
+    document.getElementById("purchasesBody").innerHTML = d.length === 0 ? '<tr><td colspan=5 class="text-muted">구매 내역이 없습니다</td></tr>' : d.map(p => {
+      const reviewBtn = p.hasReview ? '<span class="text-success">완료</span>' : `<button onclick="openModal('${p.id}')" class="text-primary hover:underline">작성하기</button>`;
+      return `<tr><td>${p.product?.name || "알 수 없음"}</td><td>${p.paidAmount.toLocaleString()}원</td><td class="text-muted">${p.deliveredContent || "-"}</td><td>${reviewBtn}</td><td class="text-muted">${new Date(p.purchasedAt).toLocaleString("ko-KR")}</td></tr>`;
+    }).join("");
   }
-  function openModal(id) { document.getElementById("receiptId").value = id; document.getElementById("reviewModal").classList.remove("hidden"); }
-  function closeModal() { document.getElementById("reviewModal").classList.add("hidden"); }
-  async function submitReview() { const r = await fetch("/dashboard/reviews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ receiptId: document.getElementById("receiptId").value, rating: document.getElementById("rating").value, content: document.getElementById("reviewContent").value }) }); if (r.ok) { alert("후기가 등록되었습니다"); closeModal(); load(); } }
+  function openModal(id) { document.getElementById("receiptId").value = id; document.getElementById("reviewModal").classList.add("active"); }
+  function closeModal() { document.getElementById("reviewModal").classList.remove("active"); }
+  async function submitReview() {
+    const r = await fetch("/dashboard/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        receiptId: document.getElementById("receiptId").value,
+        rating: document.getElementById("rating").value,
+        content: document.getElementById("reviewContent").value
+      })
+    });
+    if (r.ok) { alert("후기가 등록되었습니다"); closeModal(); load(); }
+  }
   load();
 </script>

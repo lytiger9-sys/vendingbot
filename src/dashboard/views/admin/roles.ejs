@@ -1,37 +1,73 @@
-<div class="mb-6">
-  <h1 class="text-2xl font-bold">🎭 역할 지급 설정</h1>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>역할 지급 설정</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <h1 class="sidebar-title">🛒 자판기 봇</h1>
+      <nav class="sidebar-nav">
+        <a href="/admin" class="nav-link"><span>📊</span> 월간 실적</a>
+        <a href="/admin/products" class="nav-link"><span>📦</span> 제품</a>
+        <a href="/admin/logs" class="nav-link"><span>📜</span> 로그</a>
+        <a href="/admin/settings" class="nav-link"><span>⚙️</span> 설정</a>
+        <a href="/admin/roles" class="nav-link active"><span>🎭</span> 역할 지급</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-id">ID: <%= user.id %></div>
+        <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
+        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+      </div>
+    </aside>
+    <main class="main-content">
+<div class="page-header">
+  <h1 class="title-md">🎭 역할 지급 설정</h1>
 </div>
-<div class="bg-gray-800 rounded-lg p-6 mb-6">
-  <h2 class="text-lg font-bold mb-4">역할 규칙 추가</h2>
+
+<div class="card mb-6">
+  <div class="card-header">역할 규칙 추가</div>
   <form id="addRoleForm" class="flex gap-4 items-end">
-    <div><label class="block text-sm text-gray-400">누적 구매 기준 (원)</label><input type="number" name="spentLimit" required
-        class="w-40 p-2 rounded bg-gray-700 border border-gray-600"></div>
-    <div><label class="block text-sm text-gray-400">역할 ID</label><input type="text" name="roleId" required
-        placeholder="123456789" class="w-48 p-2 rounded bg-gray-700 border border-gray-600"></div>
-    <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded">추가</button>
-  </form>
+    <div class="input-group" style="margin-bottom: 0;">
+      <label class="input-label">누적 구매 기준 (원)</label>
+      <input type="number" name="spentLimit" required class="input" style="width: 160px;">
+    </div>
+    <div class="input-group" style="margin-bottom: 0;">
+      <label class="input-label">역할 ID</label>
+      <input type="text" name="roleId" required placeholder="123456789" class="input" style="width: 180px;">
+    </div>
 </div>
-<div class="bg-gray-800 rounded-lg p-6">
-  <h2 class="text-lg font-bold mb-4">현재 역할 규칙</h2>
-  <table class="w-full">
-    <thead>
-      <tr class="text-left text-gray-400">
-        <th class="pb-3">순서</th>
-        <th class="pb-3">누적 구매 기준</th>
-        <th class="pb-3">역할 ID</th>
-        <th class="pb-3">작업</th>
-      </tr>
-    </thead>
-    <tbody id="roleList">
-      <tr>
-        <td colspan="4" class="text-gray-400">로딩중...</td>
-      </tr>
-    </tbody>
-  </table>
+
+<div class="card">
+  <div class="card-header">현재 역할 규칙</div>
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>순서</th>
+          <th>누적 구매 기준</th>
+          <th>역할 ID</th>
+          <th>작업</th>
+        </tr>
+      </thead>
+      <tbody id="roleList">
+        <tr>
+          <td colspan="4" class="text-muted">로딩중...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
+
 <script>
-  async function loadRoles() { const r = await fetch("/admin/roles"); const roles = await r.json(); const tbody = document.getElementById("roleList"); tbody.innerHTML = roles.length === 0 ? "<tr><td colspan=4 class=text-gray-400>규칙이 없습니다</td></tr>" : roles.map((r, i) => `<tr class="border-t border-gray-700"><td class="py-3">${i + 1}</td><td class="py-3">${r.spentLimit.toLocaleString()}원</td><td class="py-3 font-mono">${r.roleId}</td><td class="py-3"><button onclick="deleteRole(${r.id})" class="text-red-400 hover:underline">삭제</button></td></tr>`).join(""); }
-  document.getElementById("addRoleForm").onsubmit = async function (e) { e.preventDefault(); const fd = new FormData(this); await fetch("/admin/roles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ spentLimit: fd.get("spentLimit"), roleId: fd.get("roleId") }) }); this.reset(); loadRoles(); };
-  async function deleteRole(id) { if (confirm("삭제하시겠습니까?")) { await fetch(`/admin/roles/${id}`, { method: "DELETE" }); loadRoles(); } }
+  async function loadRoles() { const r = await fetch("/api/admin/roles"); const roles = await r.json(); const tbody = document.getElementById("roleList"); tbody.innerHTML = roles.length === 0 ? "<tr><td colspan=4 class=text-muted>규칙이 없습니다</td></tr>" : roles.map((r, i) => `<tr><td>${i + 1}</td><td>${r.spentLimit.toLocaleString()}원</td><td><code style="background: var(--bg-darker); padding: 4px 8px; border-radius: 4px;">${r.roleId}</code></td><td><button onclick="deleteRole(${r.id})" class="text-danger hover:underline">삭제</button></td></tr>`).join(""); }
+  document.getElementById("addRoleForm").onsubmit = async function (e) { e.preventDefault(); const fd = new FormData(this); await fetch("/api/admin/roles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ spentLimit: fd.get("spentLimit"), roleId: fd.get("roleId") }) }); this.reset(); loadRoles(); };
+  async function deleteRole(id) { if (confirm("삭제하시겠습니까?")) { await fetch(`/api/admin/roles/${id}`, { method: "DELETE" }); loadRoles(); } }
   loadRoles();
 </script>

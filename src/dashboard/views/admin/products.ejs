@@ -1,24 +1,66 @@
-<div class="mb-6 flex justify-between items-center">
-  <h1 class="text-2xl font-bold">📦 제품 관리</h1>
-  <button onclick="showAddCategory()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded">카테고리 추가</button>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>제품 관리</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <h1 class="sidebar-title">🛒 자판기 봇</h1>
+      <nav class="sidebar-nav">
+        <a href="/admin" class="nav-link"><span>📊</span> 월간 실적</a>
+        <a href="/admin/products" class="nav-link active"><span>📦</span> 제품</a>
+        <a href="/admin/logs" class="nav-link"><span>📜</span> 로그</a>
+        <a href="/admin/settings" class="nav-link"><span>⚙️</span> 설정</a>
+        <a href="/admin/roles" class="nav-link"><span>🎭</span> 역할 지급</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-id">ID: <%= user.id %></div>
+        <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
+        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+      </div>
+    </aside>
+    <main class="main-content">
+<div class="page-header flex justify-between items-center">
+  <h1 class="title-md">📦 제품 관리</h1>
+  <button onclick="showAddCategory()" class="btn btn-success btn-sm">카테고리 추가</button>
 </div>
 <div id="categories"></div>
-<div id="addProductModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-  <div class="bg-gray-800 rounded-lg p-6 w-96">
-    <h3 class="text-lg font-bold mb-4">제품 추가</h3>
-    <form id="addProductForm" class="space-y-4">
-      <input type="text" name="name" placeholder="제품명" required class="w-full p-2 rounded bg-gray-700 border border-gray-600">
-      <input type="number" name="price" placeholder="가격" required class="w-full p-2 rounded bg-gray-700 border border-gray-600">
-      <textarea name="description" placeholder="설명" class="w-full p-2 rounded bg-gray-700 border border-gray-600"></textarea>
-      <select name="categoryId" id="productCategorySelect" class="w-full p-2 rounded bg-gray-700 border border-gray-600"></select>
-      <div class="flex items-center gap-2">
+<div id="addProductModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      제품 추가
+      <button onclick="hideModal()" class="modal-close">×</button>
+    </div>
+    <form id="addProductForm">
+      <div class="input-group">
+        <input type="text" name="name" placeholder="제품명" required class="input">
+      </div>
+      <div class="input-group">
+        <input type="number" name="price" placeholder="가격" required class="input">
+      </div>
+      <div class="input-group">
+        <textarea name="description" placeholder="설명" class="input" rows="3"></textarea>
+      </div>
+      <div class="input-group">
+        <select name="categoryId" id="productCategorySelect" class="input"></select>
+      </div>
+      <div class="input-group flex items-center gap-3">
         <input type="checkbox" name="isFixed" id="isFixedCheck">
         <label for="isFixedCheck">고정형</label>
       </div>
-      <textarea name="fixedContent" id="fixedContentArea" placeholder="고정형 콘텐츠 (제품 정보 등)" class="w-full p-2 rounded bg-gray-700 border border-gray-600 hidden"></textarea>
-      <div class="flex gap-2">
-        <button type="submit" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 rounded">추가</button>
-        <button type="button" onclick="hideModal()" class="flex-1 py-2 bg-gray-600 hover:bg-gray-500 rounded">취소</button>
+      <div class="input-group">
+        <textarea name="fixedContent" id="fixedContentArea" placeholder="고정형 콘텐츠 (제품 정보 등)" class="input hidden" rows="3"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" onclick="hideModal()" class="btn btn-outline">취소</button>
+        <button type="submit" class="btn btn-primary">추가</button>
       </div>
     </form>
   </div>
@@ -34,29 +76,28 @@ async function loadProducts(){
 function renderCategories(data){
   const el=document.getElementById("categories");
   el.innerHTML=data.map(c=>`
-    <div class="bg-gray-800 rounded-lg mb-4">
-      <div class="p-4 border-b border-gray-700 flex justify-between items-center">
-        <h3 class="font-bold text-lg">${c.name}</h3>
-        <button onclick="addProduct(${c.id})" class="text-sm bg-blue-600 px-3 py-1 rounded hover:bg-blue-700">제품추가</button>
+    <div class="card mb-4">
+      <div class="flex justify-between items-center p-4 border-b" style="border-color: var(--border-color);">
+        <h3 class="font-bold">${c.name}</h3>
+        <button onclick="addProduct(${c.id})" class="btn btn-primary btn-sm">제품추가</button>
       </div>
       <div class="p-4">
-        ${c.products.length===0?"<p class=\"text-gray-400\">제품이 없습니다</p>":c.products.map(p=>`
-          <div class="bg-gray-700 rounded p-3 mb-2">
+        ${c.products.length===0?"<p class=\"text-muted\">제품이 없습니다</p>":c.products.map(p=>`
+          <div class="product-item">
             <div class="flex justify-between">
               <span>${p.name}</span>
-              <span class="text-green-400">${p.price.toLocaleString()}원</span>
+              <span class="text-success">${p.price.toLocaleString()}원</span>
             </div>
-            <div class="text-sm text-gray-400">${p.isFixed?"고정형":"재고형"} | ${p.isFixed?"무제한":p.stocks.length+"개"}</div>
-            <div class="mt-2 flex gap-2">
-              ${p.isFixed?`<button onclick="editStocks(${p.id},\"fixed\")" class="text-xs bg-yellow-600 px-2 py-1 rounded">수정</button>`:`<button onclick="addStock(${p.id})" class="text-xs bg-green-600 px-2 py-1 rounded">재고추가</button>`}
-              <button onclick="deleteProduct(${p.id})" class="text-xs bg-red-600 px-2 py-1 rounded">삭제</button>
+            <div class="product-meta">${p.isFixed?"고정형":"재고형"} | ${p.isFixed?"무제한":p.stocks.length+"개"}</div>
+            <div class="flex gap-2 mt-2">
+              ${p.isFixed?`<button onclick="editStocks(${p.id},\"fixed\")" class="btn btn-warning btn-sm">수정</button>`:`<button onclick="addStock(${p.id})" class="btn btn-success btn-sm">재고추가</button>`}
+              <button onclick="deleteProduct(${p.id})" class="btn btn-danger btn-sm">삭제</button>
             </div>
           </div>
         `).join("")}
       </div>
     </div>
-  `).join("");
-}
+  `).join("");}
 function showAddCategory(){
   const name=prompt("카테고리 이름:");
   if(name){fetch("/api/products/categories",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})}).then(()=>loadProducts());}
@@ -82,3 +123,7 @@ async function deleteProduct(id){
 }
 loadProducts();
 </script>
+</main>
+  </div>
+</body>
+</html>

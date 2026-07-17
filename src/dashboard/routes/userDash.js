@@ -6,8 +6,19 @@ const router = express.Router();
 
 // User dashboard
 router.get('/', isAuthenticated, async (req, res) => {
+  const isAdminUser = req.user.id === process.env.ADMIN_USER_ID;
   res.render('user/dashboard', {
-    user: req.user
+    user: req.user,
+    isAdmin: isAdminUser
+  });
+});
+
+// User purchases page
+router.get('/purchases-page', isAuthenticated, async (req, res) => {
+  const isAdminUser = req.user.id === process.env.ADMIN_USER_ID;
+  res.render('user/purchases', {
+    user: req.user,
+    isAdmin: isAdminUser
   });
 });
 
