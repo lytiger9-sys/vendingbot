@@ -53,7 +53,7 @@ async function handleButton(interaction, client, prisma) {
       .setCustomId('deposit_sender')
       .setLabel('입금자명')
       .setStyle(TextInputStyle.Short)
-      .setPlaceholder('적요 혹은 계좌주인을 입력하세요')
+      .setPlaceholder('입금자명을 적어주세요')
       .setRequired(true);
     
     const amountInput = new TextInputBuilder()
