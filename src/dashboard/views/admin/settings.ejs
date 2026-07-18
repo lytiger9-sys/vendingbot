@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>설정</title>
+  <title>임베드 설정</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,144 +17,297 @@
         <a href="/admin" class="nav-link"><span>📊</span> 월간 실적</a>
         <a href="/admin/products" class="nav-link"><span>📦</span> 제품</a>
         <a href="/admin/logs" class="nav-link"><span>📜</span> 로그</a>
-        <a href="/admin/settings" class="nav-link active"><span>⚙️</span> 설정</a>
-        <a href="/admin/embed" class="nav-link"><span>💬</span> 임베드</a>
+        <a href="/admin/settings" class="nav-link"><span>⚙️</span> 설정</a>
+        <a href="/admin/embed" class="nav-link active"><span>💬</span> 임베드</a>
         <a href="/admin/roles" class="nav-link"><span>🎭</span> 역할 지급</a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-id">ID: <%= user.id %></div>
-        <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
-        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+        <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
+        <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>
     </aside>
     <main class="main-content">
-<div class="page-header">
-  <h1 class="title-md">⚙️ 자동충전/로그 설정</h1>
-</div>
+      <div class="page-header">
+        <h1 class="title-md">💬 임베드 설정</h1>
+      </div>
 
-<div class="grid-2 mb-6">
-  <div class="card">
-    <div class="card-header">💰 계좌 정보</div>
-    <div class="input-group">
-      <input type="text" id="bankInfo" placeholder="은행명/계좌번호 (예: 국민 123-456-789)" class="input">
-    </div>
-    <div class="input-group">
-      <input type="number" id="minDeposit" placeholder="최소 입금 금액" class="input">
-    </div>
-    <button onclick="saveBankSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">📝 임베드 편집</div>
+          
+          <div class="input-group">
+            <label class="input-label">제목</label>
+            <input type="text" id="embedTitle" placeholder="자판기에 오신 것을 환영합니다" class="input">
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">설명</label>
+            <textarea id="embedDescription" placeholder="아래 버튼을 눌러 원하는 서비스를 이용하세요." class="input textarea" rows="8"></textarea>
+          </div>
+
+          <div class="grid-2">
+            <div class="input-group">
+              <label class="input-label">색상 (Hex)</label>
+              <div class="flex gap-2">
+                <input type="color" id="embedColorPicker" value="#5865F2" class="color-picker">
+                <input type="text" id="embedColor" placeholder="#5865F2" class="input" style="flex: 1;">
+              </div>
+            </div>
+            <div class="input-group">
+              <label class="input-label">푸터 텍스트</label>
+              <input type="text" id="embedFooter" placeholder="자판기 봇" class="input">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">이미지 URL (선택)</label>
+            <input type="text" id="embedImage" placeholder="https://example.com/image.png" class="input">
+          </div>
+
+          <button onclick="saveEmbed()" id="saveBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+            💾 저장하기
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">👁️ Discord 미리보기</div>
+          <div id="embedPreview" class="embed-preview">
+            </div>
+        </div>
+      </div>
+
+      <div class="card test-card-section">
+        <div class="card-header">🎯 테스트</div>
+        <div class="input-group">
+          <label class="input-label">채널 ID</label>
+          <input type="text" id="testChannelId" placeholder="테스트 메시지를 보낼 채널 ID" class="input">
+        </div>
+        <button onclick="testEmbed()" class="btn btn-success" id="testBtn">
+          📤 이 채널로 임베드 보내기
+        </button>
+      </div>
+    </main>
   </div>
-  <div class="card">
-    <div class="card-header">📝 로그 채널 ID</div>
-    <div class="input-group">
-      <input type="text" id="manualLogChannel" placeholder="수동충전 로그 채널 ID" class="input">
-    </div>
-    <div class="input-group">
-      <input type="text" id="purchaseLogChannel" placeholder="구매 로그 채널 ID" class="input">
-    </div>
-    <div class="input-group">
-      <input type="text" id="failLogChannel" placeholder="충전 실패 로그 채널 ID" class="input">
-    </div>
-    <button onclick="saveChannelSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
-  </div>
-</div>
 
-<div class="card">
-  <div class="card-header">📱 SMS 자동충전 가이드</div>
-  <div class="flex gap-4 mb-4">
-    <button onclick="showGuide('android')" id="btnAndroid" class="btn btn-success">안드로이드</button>
-    <button onclick="showGuide('ios')" id="btnIos" class="btn btn-outline">아이폰</button>
-  </div>
-  <div id="guideContent" class="guide-box"></div>
-</div>
-
-<script>
-  // 키값 매핑 테이블을 만들어 에러 발생 가능성을 원천 차단했습니다.
-  const keyToIdMap = {
-    "BANK_INFO": "bankInfo",
-    "MIN_DEPOSIT": "minDeposit",
-    "MANUAL_LOG_CHANNEL": "manualLogChannel",
-    "PURCHASE_LOG_CHANNEL": "purchaseLogChannel",
-    "FAIL_LOG_CHANNEL": "failLogChannel"
-  };
-
-  async function loadSettings() {
-    try {
-      const r = await fetch("/api/settings");
-      const d = await r.json();
-      
-      d.settings.forEach(s => {
-        const targetId = keyToIdMap[s.key];
-        if (targetId) {
-          const el = document.getElementById(targetId);
-          if (el) el.value = s.value;
-        }
-      });
-    } catch (e) {
-      console.error("설정을 불러오는데 실패했습니다:", e);
+  <style>
+    .textarea { resize: vertical; min-height: 100px; }
+    .color-picker { width: 50px; height: 40px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; }
+    .card { min-height: 580px; }
+    .embed-preview {
+      background: #36393f;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Noto Sans KR', sans-serif;
     }
-  }
+    .embed-item {
+      background: #2f3136;
+      border-left: 4px solid #5865F2;
+      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      color: #dcddde;
+    }
+    .embed-item .embed-title {
+      color: #fff;
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .embed-item .embed-desc {
+      color: #b9bbbe;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .embed-item .embed-footer {
+      color: #72767d;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    .embed-item .embed-image {
+      width: 100%;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+    }
+    
+    /* 🛠️ 추가된 스타일: 누락되었던 테스트 카드 상단 여백 보정 */
+    .test-card-section {
+      margin-top: 24px !important;
+      min-height: auto !important;
+      padding: 16px 24px !important;
+    }
+  </style>
 
-  // 단일 설정 저장용 공통 함수
-  async function saveSetting(k, v) {
-    return await fetch("/api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: k, value: v })
+  <script>
+    const preview = document.getElementById('embedPreview');
+    const colorPicker = document.getElementById('embedColorPicker');
+    const colorInput = document.getElementById('embedColor');
+    const saveBtn = document.getElementById('saveBtn');
+    
+    let originalValues = {};
+
+    colorPicker.addEventListener('input', (e) => {
+      colorInput.value = e.target.value;
+      updatePreview();
+      checkChanges();
     });
-  }
+    colorInput.addEventListener('input', (e) => {
+      if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+        colorPicker.value = e.target.value;
+        updatePreview();
+        checkChanges();
+      }
+    });
 
-  // 계좌 정보 그룹 일괄 저장
-  async function saveBankSettings() {
-    const bankInfo = document.getElementById("bankInfo").value;
-    const minDeposit = document.getElementById("minDeposit").value;
-
-    await saveSetting("BANK_INFO", bankInfo);
-    await saveSetting("MIN_DEPOSIT", minDeposit);
-    alert("계좌 정보가 저장되었습니다.");
-  }
-
-  // 로그 채널 설정 일괄 저장
-  async function saveChannelSettings() {
-    const ids = ["MANUAL_LOG_CHANNEL", "PURCHASE_LOG_CHANNEL", "FAIL_LOG_CHANNEL"];
-    const vals = [
-      document.getElementById("manualLogChannel").value,
-      document.getElementById("purchaseLogChannel").value,
-      document.getElementById("failLogChannel").value
-    ];
-
-    for (let i = 0; i < ids.length; i++) {
-      if (vals[i] !== undefined) {
-        await saveSetting(ids[i], vals[i]);
+    function checkChanges() {
+      const current = {
+        title: document.getElementById('embedTitle').value,
+        description: document.getElementById('embedDescription').value,
+        color: document.getElementById('embedColor').value,
+        footerText: document.getElementById('embedFooter').value,
+        imageUrl: document.getElementById('embedImage').value
+      };
+      
+      const hasChanges = Object.keys(current).some(key => current[key] !== originalValues[key]);
+      
+      if (hasChanges) {
+        saveBtn.className = 'btn btn-primary';
+        saveBtn.innerHTML = '💾 저장하기';
+      } else {
+        saveBtn.className = 'btn';
+        saveBtn.style.background = '#666';
+        saveBtn.style.color = '#ccc';
+        saveBtn.innerHTML = '✓ 변경사항 없음';
       }
     }
-    alert("로그 채널 설정이 저장되었습니다.");
-  }
-  const androidGuide = `<안드로이드 SMS 웹훅 설정>
 
-1. SMS Forwarder 앱 설치
-2. Sender > Web 설정
-3. URL에 SMS_WEBHOOK_URL 입력
-4. Payload: {"content":"[SMS 수신 내용: {msg}] (발신자: {phone})"}
-5. Rules > SMS 필터 설정
-6. 입금 문구 포함 시 동작하도록 설정`;
+    function updatePreview() {
+      const title = document.getElementById('embedTitle').value || '제목';
+      const desc = document.getElementById('embedDescription').value || '설명';
+      const color = colorInput.value || '#5865F2';
+      const footer = document.getElementById('embedFooter').value;
+      const image = document.getElementById('embedImage').value;
 
-  const iosGuide = `<아이폰 Shortcuts 설정>
+      let html = `<div class="embed-item" style="border-left-color: ${color};">`;
+      html += `<div class="embed-title">${escapeHtml(title)}</div>`;
+      html += `<div class="embed-desc">${escapeHtml(desc)}</div>`;
+      if (footer) html += `<div class="embed-footer">${escapeHtml(footer)}</div>`;
+      if (image) html += `<img src="${escapeHtml(image)}" class="embed-image" onerror="this.style.display='none'">`;
+      html += `</div>`;
+      preview.innerHTML = html;
+    }
 
-1. 단축어 앱 > 자동화 탭
-2. 메시지 트리거 추가
-3. 송신자: 은행번호, 내용: 입금
-4. 동작 추가 > URL
-5. SMS_WEBHOOK_URL 입력
-6. Get Contents of URL
-7. Method: POST, Body: JSON
-8. Key: content, Value: 메시지 텍스트`;
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
 
-    function showGuide(type) {
-    document.getElementById("guideContent").textContent = type === "android" ? androidGuide : iosGuide;
-    document.getElementById("btnAndroid").className = type === "android" ? "btn btn-success" : "btn btn-outline";
-    document.getElementById("btnIos").className = type === "ios" ? "btn btn-success" : "btn btn-outline";
-  }
+    ['embedTitle', 'embedDescription', 'embedFooter', 'embedImage'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          updatePreview();
+          checkChanges();
+        });
+      }
+    });
 
-  loadSettings();
-  showGuide("android");
-</script>
+    async function loadEmbed() {
+      try {
+        const r = await fetch('/api/settings/embed');
+        const d = await r.json();
+        
+        originalValues = {
+          title: d.embedSettings?.title || '',
+          description: d.embedSettings?.description || '',
+          color: d.embedSettings?.color || '#5865F2',
+          footerText: d.embedSettings?.footerText || '',
+          imageUrl: d.embedSettings?.imageUrl || ''
+        };
+        
+        document.getElementById('embedTitle').value = originalValues.title;
+        document.getElementById('embedDescription').value = originalValues.description;
+        document.getElementById('embedColor').value = originalValues.color;
+        document.getElementById('embedColorPicker').value = originalValues.color;
+        document.getElementById('embedFooter').value = originalValues.footerText;
+        document.getElementById('embedImage').value = originalValues.imageUrl;
+        
+        updatePreview();
+        checkChanges();
+      } catch (e) {
+        console.error('설정 로드 실패:', e);
+      }
+    }
+
+    async function saveEmbed() {
+      const data = {
+        title: document.getElementById('embedTitle').value,
+        description: document.getElementById('embedDescription').value,
+        color: document.getElementById('embedColor').value,
+        footerText: document.getElementById('embedFooter').value,
+        imageUrl: document.getElementById('embedImage').value
+      };
+
+      try {
+        const r = await fetch('/api/settings/embed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (r.ok) {
+          originalValues = { ...data };
+          checkChanges();
+          toast('임베드 설정이 저장되었습니다.', 'success');
+        } else {
+          throw new Error('저장 실패');
+        }
+      } catch (e) {
+        toast('저장에 실패했습니다.', 'error');
+      }
+    }
+
+    async function testEmbed() {
+      const channelId = document.getElementById('testChannelId').value.trim();
+      if (!channelId) {
+        toast('채널 ID를 입력해주세요.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('testBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ 전송 중...';
+
+      const data = {
+        title: document.getElementById('embedTitle').value,
+        description: document.getElementById('embedDescription').value,
+        color: document.getElementById('embedColor').value,
+        footerText: document.getElementById('embedFooter').value,
+        imageUrl: document.getElementById('embedImage').value
+      };
+
+      try {
+        const r = await fetch('/api/settings/embed/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data, channelId })
+        });
+        const result = await r.json();
+        if (result.success) {
+          toast('테스트 메시지를 전송했습니다!', 'success');
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (e) {
+        toast('전송 실패: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📤 이 채널로 임베드 보내기';
+      }
+    }
+
+    loadEmbed();
+  </script>
+  <script src="/js/common.js"></script>
+</body>
+</html>

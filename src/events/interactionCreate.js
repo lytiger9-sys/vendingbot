@@ -1,4 +1,4 @@
-import { Events, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { Events, ContainerBuilder, TextDisplayBuilder, SectionBuilder, SeparatorBuilder, SeparatorSpacingSize, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, MessageFlags } from 'discord.js';
 import { prisma } from '../index.js';
 import { checkAndGiveRole } from '../utils/roleManager.js';
 
@@ -27,7 +27,7 @@ export default {
     }
     
     // 셀렉트 메뉴 인터랙션
-    if (interaction.isSelectMenu()) {
+    if (interaction.isStringSelectMenu()) {
       await handleSelectMenu(interaction, client, prisma);
       return;
     }
@@ -49,23 +49,25 @@ async function handleButton(interaction, client, prisma) {
       .setCustomId('modal_deposit')
       .setTitle('💰 입금 신청');
     
-    const senderInput = new TextInputBuilder()
-      .setCustomId('deposit_sender')
-      .setLabel('입금자명')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('입금자명을 적어주세요')
-      .setRequired(true);
+    const senderInput = new TextInputBuilder({
+      customId: 'deposit_sender',
+      label: '입금자명',
+      style: TextInputStyle.Short,
+      placeholder: '입금자명을 적어주세요',
+      required: true
+    });
     
-    const amountInput = new TextInputBuilder()
-      .setCustomId('deposit_amount')
-      .setLabel('입금 금액')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('숫자만 입력하세요')
-      .setRequired(true);
+    const amountInput = new TextInputBuilder({
+      customId: 'deposit_amount',
+      label: '입금 금액',
+      style: TextInputStyle.Short,
+      placeholder: '숫자만 입력하세요',
+      required: true
+    });
     
     modal.addComponents(
-      new ActionRowBuilder().addComponents(senderInput),
-      new ActionRowBuilder().addComponents(amountInput)
+      new ActionRowBuilder({ components: [senderInput] }),
+      new ActionRowBuilder({ components: [amountInput] })
     );
     
     await interaction.showModal(modal);
@@ -79,9 +81,15 @@ async function handleButton(interaction, client, prisma) {
     });
     
     if (categories.length === 0) {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **등록된 카테고리가 없습니다.**')
+        );
+      
       return interaction.reply({
-        content: '등록된 카테고리가 없습니다.',
-        ephemeral: true
+        components: [container],
+        flags: MessageFlags.IsComponentsV2
       });
     }
     
@@ -90,17 +98,30 @@ async function handleButton(interaction, client, prisma) {
       value: cat.id.toString()
     }));
     
-    const selectMenu = new ActionRowBuilder().addComponents({
-      type: 3,
-      customId: 'select_category',
-      placeholder: '카테고리를 선택하세요',
-      options: options
+    const selectMenu = new ActionRowBuilder({
+      components: [
+        new StringSelectMenuBuilder({
+          customId: 'select_category',
+          placeholder: '카테고리를 선택하세요',
+          options: options
+        })
+      ]
     });
     
+    // V2 Container 사용
+    const container = new ContainerBuilder()
+      .setAccentColor(0x5865F2)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('👋 **카테고리를 선택해주세요**')
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small)
+      )
+      .addActionRowComponents(selectMenu);
+    
     await interaction.reply({
-      content: '👋 **카테고리를 선택해주세요**',
-      components: [selectMenu],
-      ephemeral: true
+      components: [container],
+      flags: MessageFlags.IsComponentsV2
     });
     return;
   }
@@ -108,50 +129,71 @@ async function handleButton(interaction, client, prisma) {
   // 내정보 버튼
   if (customId === 'btn_my_info') {
     const user = await prisma.user.findUnique({ where: { id: interaction.user.id } });
-    const embed = new EmbedBuilder()
-      .setTitle('👤 내 정보')
-      .setColor('#5865F2')
-      .addFields(
-        { name: '잔액', value: `${(user?.balance || 0).toLocaleString()}원`, inline: true },
-        { name: '총 지출', value: `${(user?.totalSpent || 0).toLocaleString()}원`, inline: true }
-      )
-      .setTimestamp();
+    const balance = (user?.balance || 0).toLocaleString();
+    const totalSpent = (user?.totalSpent || 0).toLocaleString();
     
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    const container = new ContainerBuilder()
+      .setAccentColor(0x5865F2)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`# 👤 내 정보\n\n**💰 잔액:** ${balance}원\n**📊 총 지출:** ${totalSpent}원`)
+      );
+    
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral
+    });
     return;
   }
   
   // 후기 버튼
   if (customId === 'btn_review_info') {
-    const embed = new EmbedBuilder()
-      .setTitle('⭐ 후기 작성')
-      .setDescription('후기 작성 시 적립금 추가 혜택을 대시보드에서 확인하세요!')
-      .setColor('#00FF00');
+    const container = new ContainerBuilder()
+      .setAccentColor(0x00FF00)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('## ⭐ 후기 작성\n후기 작성 시 적립금 추가 혜택을 대시보드에서 확인하세요!')
+      )
+      .addActionRowComponents(
+        new ActionRowBuilder({
+          components: [
+            new ButtonBuilder({
+              label: '대시보드 열기',
+              style: ButtonStyle.Link,
+              url: process.env.DASHBOARD_URL || 'http://localhost:3000'
+            })
+          ]
+        })
+      );
     
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setLabel('대시보드 열기')
-        .setStyle(ButtonStyle.Link)
-        .setURL(process.env.DASHBOARD_URL || 'http://localhost:3000')
-    );
-    
-    await interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      ephemeral: true
+    });
     return;
   }
   
   // 홈페이지 버튼
   if (customId === 'btn_website') {
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setLabel('홈페이지로 이동')
-        .setStyle(ButtonStyle.Link)
-        .setURL(process.env.DASHBOARD_URL || 'http://localhost:3000')
-    );
+    const container = new ContainerBuilder()
+      .setAccentColor(0x5865F2)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('👋 아래 버튼을 눌러 홈페이지로 이동하세요.')
+      )
+      .addActionRowComponents(
+        new ActionRowBuilder({
+          components: [
+            new ButtonBuilder({
+              label: '홈페이지로 이동',
+              style: ButtonStyle.Link,
+              url: process.env.DASHBOARD_URL || 'http://localhost:3000'
+            })
+          ]
+        })
+      );
     
     await interaction.reply({
-      content: '👋 아래 버튼을 눌러 홈페이지로 이동하세요.',
-      components: [row],
-      ephemeral: true
+      components: [container],
+      flags: MessageFlags.IsComponentsV2
     });
     return;
   }
@@ -159,7 +201,7 @@ async function handleButton(interaction, client, prisma) {
   // 구매 버튼
   if (customId.startsWith('buy_product_')) {
     const productId = parseInt(customId.split('_')[2]);
-    await processPurchase(interaction, productId, prisma);
+    await processPurchase(interaction, productId, prisma, client);
     return;
   }
 }
@@ -176,9 +218,15 @@ async function handleSelectMenu(interaction, client, prisma) {
     });
     
     if (products.length === 0) {
-      return interaction.reply({
-        content: '해당 카테고리에 상품이 없습니다.',
-        ephemeral: true
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **해당 카테고리에 상품이 없습니다.**')
+        );
+      
+      return interaction.update({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2
       });
     }
     
@@ -188,16 +236,26 @@ async function handleSelectMenu(interaction, client, prisma) {
       description: p.description?.substring(0, 50) || '설명 없음'
     }));
     
-    const selectMenu = new ActionRowBuilder().addComponents({
-      type: 3,
-      customId: 'select_product',
-      placeholder: '상품을 선택하세요',
-      options: options
+    const selectMenu = new ActionRowBuilder({
+      components: [
+        new StringSelectMenuBuilder({
+          customId: 'select_product',
+          placeholder: '상품을 선택하세요',
+          options: options
+        })
+      ]
     });
     
+    const container = new ContainerBuilder()
+      .setAccentColor(0x5865F2)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('👋 **상품을 선택해주세요**')
+      )
+      .addActionRowComponents(selectMenu);
+    
     await interaction.update({
-      content: '👋 **상품을 선택해주세요**',
-      components: [selectMenu]
+      components: [container],
+      flags: MessageFlags.IsComponentsV2
     });
     return;
   }
@@ -211,35 +269,41 @@ async function handleSelectMenu(interaction, client, prisma) {
     });
     
     if (!product) {
-      return interaction.reply({
-        content: '상품을 찾을 수 없습니다.',
-        ephemeral: true
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **상품을 찾을 수 없습니다.**')
+        );
+      
+      return interaction.update({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2
       });
     }
     
-    const embed = new EmbedBuilder()
-      .setTitle(`${product.name}`)
-      .setColor('#5865F2')
-      .setDescription(product.description || '설명 없음')
-      .addFields(
-        { name: '가격', value: `${product.price.toLocaleString()}원`, inline: true },
-        { name: '카테고리', value: product.category.name, inline: true },
-        { name: '재고', value: product.isFixed ? '무제한' : `${product.stocks.filter(s => !s.isSold).length}개`, inline: true },
-        { name: '종류', value: product.isFixed ? '📋 고정형' : '📦 재고형', inline: true }
-      )
-      .setTimestamp();
+    const stockInfo = product.isFixed ? '무제한' : `${product.stocks.filter(s => !s.isSold).length}개`;
+    const productType = product.isFixed ? '📋 고정형' : '📦 재고형';
     
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`buy_product_${product.id}`)
-        .setLabel('구매하기')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji('🛒')
-    );
+    const container = new ContainerBuilder()
+      .setAccentColor(0x5865F2)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`## ${product.name}\n\n${product.description || '설명 없음'}\n\n**💰 가격:** ${product.price.toLocaleString()}원\n**📁 카테고리:** ${product.category.name}\n**📦 재고:** ${stockInfo}\n**🏷️ 종류:** ${productType}`)
+      )
+      .addActionRowComponents(
+        new ActionRowBuilder({
+          components: [
+            new ButtonBuilder({
+              customId: `buy_product_${product.id}`,
+              label: '구매하기 🛒',
+              style: ButtonStyle.Success
+            })
+          ]
+        })
+      );
     
     await interaction.update({
-      embeds: [embed],
-      components: [row]
+      components: [container],
+      flags: MessageFlags.IsComponentsV2
     });
     return;
   }
@@ -250,17 +314,56 @@ async function handleModalSubmit(interaction, client, prisma) {
   
   if (customId === 'modal_deposit') {
     const senderName = interaction.fields.getTextInputValue('deposit_sender');
-    const amount = parseInt(interaction.fields.getTextInputValue('deposit_amount'));
+    const amountInput = interaction.fields.getTextInputValue('deposit_amount');
+    const amount = parseInt(amountInput);
     
-    // 최소 입금 금액 가져오기
+    // 최소 입금 금액 먼저 가져오기
     const minDeposit = await prisma.systemSetting.findUnique({
       where: { key: 'MIN_DEPOSIT' }
     });
     const minAmount = minDeposit ? parseInt(minDeposit.value) : 1000;
     
-    if (amount < minAmount) {
+    // 입금자명 유효성 검사
+    if (!senderName || senderName.trim() === '') {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **입금자명을 입력해주세요.**')
+        );
+      
       return interaction.reply({
-        content: `💰 최소 입금 금액은 ${minAmount.toLocaleString()}원입니다.`,
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
+    }
+    
+    // 금액 유효성 검사 - 숫자가 아닌 경우
+    if (isNaN(amount) || amountInput.trim() === '') {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **입금 금액에는 숫자만 입력해주세요.**')
+        );
+      
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
+    }
+    
+    // 금액이 최소금액 미만인 경우
+    if (amount < minAmount) {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`💰 **최소 입금 금액은 ${minAmount.toLocaleString()}원 이상이어야 합니다.**`)
+        );
+      
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
         ephemeral: true
       });
     }
@@ -271,7 +374,7 @@ async function handleModalSubmit(interaction, client, prisma) {
         userId: interaction.user.id,
         amount,
         points: amount,
-        senderName,
+        senderName: senderName.trim(),
         status: 'PENDING'
       }
     });
@@ -281,18 +384,19 @@ async function handleModalSubmit(interaction, client, prisma) {
       where: { key: 'BANK_INFO' }
     });
     
-    const embed = new EmbedBuilder()
-      .setTitle('💰 입금 신청 완료')
-      .setColor('#00FF00')
-      .setDescription('신청이 완료되었습니다. 입금 확인 후 포인트가 충전됩니다.')
-      .addFields(
-        { name: '입금자명', value: senderName, inline: true },
-        { name: '입금 금액', value: `${amount.toLocaleString()}원`, inline: true },
-        { name: '계좌정보', value: bankSetting?.value || '설정된 계좌정보 없음', inline: false }
-      )
-      .setTimestamp();
+    const container = new ContainerBuilder()
+      .setAccentColor(0x00FF00)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `# 💰 입금 신청 완료\n\n신청이 완료되었습니다. 입금 확인 후 포인트가 충전됩니다.\n\n**👤 입금자명:** ${senderName}\n**💵 입금 금액:** ${amount.toLocaleString()}원\n\n**🏦 계좌정보:**\n${bankSetting?.value || '설정된 계좌정보 없음'}`
+        )
+      );
     
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      ephemeral: true
+    });
   }
 }
 
@@ -301,11 +405,31 @@ async function processPurchase(interaction, productId, prisma) {
     const user = await prisma.user.findUnique({ where: { id: interaction.user.id } });
     
     if (!user) {
-      return interaction.reply({ content: '사용자를 찾을 수 없습니다.', ephemeral: true });
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **사용자를 찾을 수 없습니다.**')
+        );
+      
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
     }
     
     if (user.blacklisted) {
-      return interaction.reply({ content: '블랙리스트 처리된 사용자입니다.', ephemeral: true });
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('🚫 **블랙리스트 처리된 사용자입니다.**')
+        );
+      
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
     }
     
     const product = await prisma.product.findUnique({
@@ -314,12 +438,29 @@ async function processPurchase(interaction, productId, prisma) {
     });
     
     if (!product) {
-      return interaction.reply({ content: '상품을 찾을 수 없습니다.', ephemeral: true });
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **상품을 찾을 수 없습니다.**')
+        );
+      
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
     }
     
     if (product.price > user.balance) {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(`💸 **잔액이 부족합니다.**\n\n필요: ${product.price.toLocaleString()}원\n보유: ${user.balance.toLocaleString()}원`)
+        );
+      
       return interaction.reply({
-        content: `💸 잔액이 부족합니다. (필요: ${product.price.toLocaleString()}원, 보유: ${user.balance.toLocaleString()}원)`,
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
         ephemeral: true
       });
     }
@@ -332,7 +473,17 @@ async function processPurchase(interaction, productId, prisma) {
     } else {
       // 재고형 - 랜덤 한 개 가져오기
       if (product.stocks.length === 0) {
-        return interaction.reply({ content: '💔 재고가 부족합니다.', ephemeral: true });
+        const container = new ContainerBuilder()
+          .setAccentColor(0xFF5555)
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent('💔 **재고가 부족합니다.**')
+          );
+        
+        return interaction.reply({
+          components: [container],
+          flags: MessageFlags.IsComponentsV2,
+          ephemeral: true
+        });
       }
       
       const randomStock = product.stocks[Math.floor(Math.random() * product.stocks.length)];
@@ -364,19 +515,19 @@ async function processPurchase(interaction, productId, prisma) {
     
     // DM 전송
     try {
-      const dmEmbed = new EmbedBuilder()
-        .setTitle(`✅ 구매 완료: ${product.name}`)
-        .setColor('#00FF00')
-        .setDescription('구매가 완료되었습니다! 아래 정보를 확인하세요!')
-        .addFields(
-          { name: '상품명', value: product.name, inline: true },
-          { name: '결제 금액', value: `${product.price.toLocaleString()}원`, inline: true },
-          { name: '구매 일시', value: new Date().toLocaleString('ko-KR'), inline: false }
-        )
-        .addFields({ name: '🎁 전달된 상품', value: deliveredContent })
-        .setTimestamp();
+      const dmEmbed = new TextDisplayBuilder()
+        .setContent(
+          `# ✅ 구매 완료: ${product.name}\n\n구매가 완료되었습니다! 아래 정보를 확인하세요!\n\n**📦 상품명:** ${product.name}\n**💵 결제 금액:** ${product.price.toLocaleString()}원\n**🕐 구매 일시:** ${new Date().toLocaleString('ko-KR')}\n\n**🎁 전달된 상품:**\n${deliveredContent}`
+        );
       
-      await interaction.user.send({ embeds: [dmEmbed] });
+      const dmContainer = new ContainerBuilder()
+        .setAccentColor(0x00FF00)
+        .addTextDisplayComponents(dmEmbed);
+      
+      await interaction.user.send({
+        components: [dmContainer],
+        flags: MessageFlags.IsComponentsV2
+      });
     } catch (dmError) {
       console.log('DM failed, content saved to receipt');
     }
@@ -385,13 +536,30 @@ async function processPurchase(interaction, productId, prisma) {
     await checkAndGiveRole(interaction.user.id, prisma, client);
     
     // 구매자에게 확인
+    const successContainer = new ContainerBuilder()
+      .setAccentColor(0x00FF00)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('✅ **구매가 완료되었습니다!**\n📦 전달된 정보는 DM으로 발송되었습니다.')
+      );
+    
     await interaction.reply({
-      content: `✅ **구매가 완료되었습니다!**\n📦 전달된 정보는 DM으로 발송되었습니다.`,
+      components: [successContainer],
+      flags: MessageFlags.IsComponentsV2,
       ephemeral: true
     });
     
   } catch (error) {
     console.error('Purchase error:', error);
-    await interaction.reply({ content: '구매 처리 중 오류가 발생했습니다.', ephemeral: true });
+    const container = new ContainerBuilder()
+      .setAccentColor(0xFF5555)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('❌ **구매 처리 중 오류가 발생했습니다.**')
+      );
+    
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      ephemeral: true
+    });
   }
 }

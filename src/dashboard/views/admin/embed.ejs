@@ -24,7 +24,7 @@
       <div class="sidebar-footer">
         <div class="user-id">ID: <%= user.id %></div>
         <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
-        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+        <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>
     </aside>
     <main class="main-content">
@@ -33,7 +33,6 @@
       </div>
 
       <div class="grid-2">
-        <!-- 에디터 패널 -->
         <div class="card">
           <div class="card-header">📝 임베드 편집</div>
           
@@ -44,7 +43,7 @@
 
           <div class="input-group">
             <label class="input-label">설명</label>
-            <textarea id="embedDescription" placeholder="아래 버튼을 눌러 원하는 서비스를 이용하세요." class="input textarea" rows="4"></textarea>
+            <textarea id="embedDescription" placeholder="아래 버튼을 눌러 원하는 서비스를 이용하세요." class="input textarea" rows="8"></textarea>
           </div>
 
           <div class="grid-2">
@@ -62,11 +61,6 @@
           </div>
 
           <div class="input-group">
-            <label class="input-label">썸네일 URL (선택)</label>
-            <input type="text" id="embedThumbnail" placeholder="https://example.com/thumb.png" class="input">
-          </div>
-
-          <div class="input-group">
             <label class="input-label">이미지 URL (선택)</label>
             <input type="text" id="embedImage" placeholder="https://example.com/image.png" class="input">
           </div>
@@ -76,16 +70,14 @@
           </button>
         </div>
 
-        <!-- 미리보기 패널 -->
         <div class="card">
           <div class="card-header">👁️ Discord 미리보기</div>
           <div id="embedPreview" class="embed-preview">
-            <!-- 미리보기 영역 -->
-          </div>
+            </div>
         </div>
       </div>
 
-      <div class="card mt-6">
+      <div class="card test-card-section">
         <div class="card-header">🎯 테스트</div>
         <div class="input-group">
           <label class="input-label">채널 ID</label>
@@ -101,6 +93,7 @@
   <style>
     .textarea { resize: vertical; min-height: 100px; }
     .color-picker { width: 50px; height: 40px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; }
+    .card { min-height: 580px; }
     .embed-preview {
       background: #36393f;
       border-radius: 8px;
@@ -131,18 +124,17 @@
       font-size: 0.8rem;
       margin-top: 0.5rem;
     }
-    .embed-item .embed-thumbnail {
-      width: 60px;
-      height: 60px;
-      object-fit: cover;
-      border-radius: 4px;
-      float: right;
-      margin-left: 1rem;
-    }
     .embed-item .embed-image {
       width: 100%;
       border-radius: 4px;
       margin-top: 0.5rem;
+    }
+    
+    /* 🛠️ 추가된 스타일: 누락되었던 테스트 카드 상단 여백 보정 */
+    .test-card-section {
+      margin-top: 24px !important;
+      min-height: auto !important;
+      padding: 16px 24px !important;
     }
   </style>
 
@@ -152,10 +144,8 @@
     const colorInput = document.getElementById('embedColor');
     const saveBtn = document.getElementById('saveBtn');
     
-    // 원본 값 저장
     let originalValues = {};
 
-    // 색상 동기화
     colorPicker.addEventListener('input', (e) => {
       colorInput.value = e.target.value;
       updatePreview();
@@ -169,14 +159,12 @@
       }
     });
 
-    // 변경사항 확인
     function checkChanges() {
       const current = {
         title: document.getElementById('embedTitle').value,
         description: document.getElementById('embedDescription').value,
         color: document.getElementById('embedColor').value,
         footerText: document.getElementById('embedFooter').value,
-        thumbnailUrl: document.getElementById('embedThumbnail').value,
         imageUrl: document.getElementById('embedImage').value
       };
       
@@ -193,18 +181,15 @@
       }
     }
 
-    // 미리보기 업데이트
     function updatePreview() {
       const title = document.getElementById('embedTitle').value || '제목';
       const desc = document.getElementById('embedDescription').value || '설명';
       const color = colorInput.value || '#5865F2';
       const footer = document.getElementById('embedFooter').value;
-      const thumb = document.getElementById('embedThumbnail').value;
       const image = document.getElementById('embedImage').value;
 
       let html = `<div class="embed-item" style="border-left-color: ${color};">`;
       html += `<div class="embed-title">${escapeHtml(title)}</div>`;
-      if (thumb) html += `<img src="${escapeHtml(thumb)}" class="embed-thumbnail" onerror="this.style.display='none'">`;
       html += `<div class="embed-desc">${escapeHtml(desc)}</div>`;
       if (footer) html += `<div class="embed-footer">${escapeHtml(footer)}</div>`;
       if (image) html += `<img src="${escapeHtml(image)}" class="embed-image" onerror="this.style.display='none'">`;
@@ -218,15 +203,16 @@
       return div.innerHTML;
     }
 
-    // 입력 변경 시 미리보기 업데이트
-    ['embedTitle', 'embedDescription', 'embedFooter', 'embedThumbnail', 'embedImage'].forEach(id => {
-      document.getElementById(id).addEventListener('input', () => {
-        updatePreview();
-        checkChanges();
-      });
+    ['embedTitle', 'embedDescription', 'embedFooter', 'embedImage'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          updatePreview();
+          checkChanges();
+        });
+      }
     });
 
-    // 설정 로드
     async function loadEmbed() {
       try {
         const r = await fetch('/api/settings/embed');
@@ -237,7 +223,6 @@
           description: d.embedSettings?.description || '',
           color: d.embedSettings?.color || '#5865F2',
           footerText: d.embedSettings?.footerText || '',
-          thumbnailUrl: d.embedSettings?.thumbnailUrl || '',
           imageUrl: d.embedSettings?.imageUrl || ''
         };
         
@@ -246,7 +231,6 @@
         document.getElementById('embedColor').value = originalValues.color;
         document.getElementById('embedColorPicker').value = originalValues.color;
         document.getElementById('embedFooter').value = originalValues.footerText;
-        document.getElementById('embedThumbnail').value = originalValues.thumbnailUrl;
         document.getElementById('embedImage').value = originalValues.imageUrl;
         
         updatePreview();
@@ -256,14 +240,12 @@
       }
     }
 
-    // 저장
     async function saveEmbed() {
       const data = {
         title: document.getElementById('embedTitle').value,
         description: document.getElementById('embedDescription').value,
         color: document.getElementById('embedColor').value,
         footerText: document.getElementById('embedFooter').value,
-        thumbnailUrl: document.getElementById('embedThumbnail').value,
         imageUrl: document.getElementById('embedImage').value
       };
 
@@ -274,7 +256,6 @@
           body: JSON.stringify(data)
         });
         if (r.ok) {
-          // 저장 후 원본값 업데이트
           originalValues = { ...data };
           checkChanges();
           toast('임베드 설정이 저장되었습니다.', 'success');
@@ -286,7 +267,6 @@
       }
     }
 
-    // 테스트 보내기
     async function testEmbed() {
       const channelId = document.getElementById('testChannelId').value.trim();
       if (!channelId) {
@@ -303,7 +283,6 @@
         description: document.getElementById('embedDescription').value,
         color: document.getElementById('embedColor').value,
         footerText: document.getElementById('embedFooter').value,
-        thumbnailUrl: document.getElementById('embedThumbnail').value,
         imageUrl: document.getElementById('embedImage').value
       };
 

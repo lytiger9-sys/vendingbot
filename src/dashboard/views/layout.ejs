@@ -12,27 +12,77 @@
 <body>
   <div class="dashboard-container">
     <aside class="sidebar">
-      <h1 class="sidebar-title">자판기 봇</h1>
+      <h1 class="sidebar-title">🛒 자판기 봇</h1>
       <nav class="sidebar-nav">
-        <% if (isAdmin) { %>
-        <a href="/admin" class="nav-link">📊 월간 실적</a>
-        <a href="/admin/roles" class="nav-link">🎭 역할 지급</a>
-        <a href="/admin/logs" class="nav-link">📜 로그</a>
-        <a href="/admin/settings" class="nav-link">⚙️ 설정</a>
-        <a href="/admin/embed" class="nav-link">💬 임베드</a>
-        <a href="/admin/products" class="nav-link">📦 제품</a>
+        <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
+          <a href="/admin" class="nav-link"><span>📊</span> 월간 실적</a>
+          <a href="/admin/products" class="nav-link"><span>📦</span> 제품</a>
+          <a href="/admin/logs" class="nav-link"><span>📜</span> 로그</a>
+          <a href="/admin/settings" class="nav-link"><span>⚙️</span> 설정</a>
+          <a href="/admin/embed" class="nav-link"><span>💬</span> 임베드</a>
+          <a href="/admin/roles" class="nav-link"><span>🎭</span> 역할 지급</a>
         <% } else { %>
-        <a href="/dashboard" class="nav-link">📊 내 통계</a>
+          <a href="/dashboard" class="nav-link"><span>📊</span> 내 통계</a>
         <% } %>
       </nav>
+      
       <div class="sidebar-footer">
-        <div class="user-id">ID: <%= user.id %></div>
-        <a href="/auth/logout" class="logout-link">로그아웃</a>
+        <div class="user-id">ID: <%= (typeof user !== 'undefined' && user && user.id) ? user.id : '사용자' %></div>
+        <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
+          <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
+        <% } %>
+        <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>
     </aside>
+    
     <main class="main-content">
       <%- body %>
     </main>
   </div>
+  
+  <style>
+    .nav-link span, .logout-link-animated span {
+      display: inline-block;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .nav-link:hover span, .logout-link-animated:hover span {
+      transform: scale(1.25) rotate(-8deg);
+    }
+
+    .logout-link-animated {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      color: #ff6b6b;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .logout-link-animated:hover {
+      background: rgba(255, 107, 107, 0.1);
+      color: #ff4757;
+    }
+  </style>
+  
+  <script>
+    function handleActiveNavigation() {
+      const currentPath = window.location.pathname;
+      const navLinks = document.querySelectorAll('.nav-link');
+      
+      navLinks.forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+    }
+    window.addEventListener('DOMContentLoaded', handleActiveNavigation);
+  </script>
+  <script src="/js/common.js"></script>
 </body>
 </html>

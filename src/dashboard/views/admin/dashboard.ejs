@@ -24,7 +24,7 @@
       <div class="sidebar-footer">
         <div class="user-id">ID: <%= user.id %></div>
         <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
-        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+        <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>
     </aside>
     <main class="main-content">
@@ -33,9 +33,9 @@
 </div>
 
 <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
-  <div class="stat-card success">
+  <div class="stat-card">
     <div class="stat-icon">💰</div>
-    <div class="stat-value text-success" id="monthlySales">로딩중...</div>
+    <div class="stat-value text-primary" id="monthlySales">로딩중...</div>
     <div class="stat-label">총 매출</div>
   </div>
   <div class="stat-card">
@@ -45,12 +45,12 @@
   </div>
   <div class="stat-card">
     <div class="stat-icon">🛒</div>
-    <div class="stat-value text-warning" id="salesCount">로딩중...</div>
+    <div class="stat-value text-primary" id="salesCount">로딩중...</div>
     <div class="stat-label">판매 건수</div>
   </div>
   <div class="stat-card">
     <div class="stat-icon">⚡</div>
-    <div class="stat-value" style="color: #b794f4;" id="rechargeCount">로딩중...</div>
+    <div class="stat-value text-primary" id="rechargeCount">로딩중...</div>
     <div class="stat-label">충전 건수</div>
   </div>
 </div>

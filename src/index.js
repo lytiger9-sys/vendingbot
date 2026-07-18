@@ -134,6 +134,9 @@ async function start() {
     await client.login(process.env.DISCORD_BOT_TOKEN);
     console.log('Bot logged in');
     
+    // Discord client를 app.locals에 할당 (API 라우트에서 사용)
+    app.locals.client = client;
+    
     app.listen(PORT, () => {
       console.log('Server running on port ' + PORT);
     });

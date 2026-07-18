@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>제품 관리</title>
+  <title>관리자 대시보드</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,8 +14,8 @@
     <aside class="sidebar">
       <h1 class="sidebar-title">🛒 자판기 봇</h1>
       <nav class="sidebar-nav">
-        <a href="/admin" class="nav-link"><span>📊</span> 월간 실적</a>
-        <a href="/admin/products" class="nav-link active"><span>📦</span> 제품</a>
+        <a href="/admin" class="nav-link active"><span>📊</span> 월간 실적</a>
+        <a href="/admin/products" class="nav-link"><span>📦</span> 제품</a>
         <a href="/admin/logs" class="nav-link"><span>📜</span> 로그</a>
         <a href="/admin/settings" class="nav-link"><span>⚙️</span> 설정</a>
         <a href="/admin/embed" class="nav-link"><span>💬</span> 임베드</a>
@@ -23,91 +23,60 @@
       </nav>
       <div class="sidebar-footer">
         <div class="user-id">ID: <%= user.id %></div>
-        <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
-        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+        <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
+                <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>
     </aside>
     <main class="main-content">
-      <div class="page-header flex justify-between items-center">
-        <h1 class="title-md">📦 제품 관리</h1>
-        <button onclick="showAddCategory()" class="btn btn-success btn-sm">카테고리 추가</button>
-      </div>
-      <div id="categories"></div>
-      <div id="addProductModal" class="modal-overlay">
-        <div class="modal">
-          <div class="modal-header">제품 추가 <button onclick="hideModal()" class="modal-close">×</button></div>
-          <form id="addProductForm">
-            <div class="input-group"><input type="text" name="name" placeholder="제품명" required class="input"></div>
-            <div class="input-group"><input type="number" name="price" placeholder="가격" required class="input"></div>
-            <div class="input-group"><textarea name="description" placeholder="설명" class="input" rows="3"></textarea></div>
-            <div class="input-group"><select name="categoryId" id="productCategorySelect" class="input"></select></div>
-            <div class="input-group flex items-center gap-3"><input type="checkbox" name="isFixed" id="isFixedCheck"><label for="isFixedCheck">고정형</label></div>
-            <div class="input-group"><textarea name="fixedContent" id="fixedContentArea" placeholder="고정형 콘텐츠" class="input hidden" rows="3"></textarea></div>
-            <div class="modal-footer"><button type="button" onclick="hideModal()" class="btn btn-outline">취소</button><button type="submit" class="btn btn-primary">추가</button></div>
-          </form>
-        </div>
-      </div>
-      <script>
-        async function loadProducts() {
-          const r = await fetch("/api/products");
-          const data = await r.json();
-          renderCategories(data);
-          document.getElementById("productCategorySelect").innerHTML = data.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
-        }
-        function renderCategories(data) {
-          const el = document.getElementById("categories");
-          el.innerHTML = data.map(c => `
-            <div class="card mb-4">
-              <div class="flex justify-between items-center p-4 border-b" style="border-color: var(--border-color);">
-                <h3 class="font-bold">${c.name}</h3>
-                <button onclick="addProduct(${c.id})" class="btn btn-primary btn-sm">제품추가</button>
-              </div>
-              <div class="p-4">
-                ${c.products.length === 0 ? '<p class="text-muted">제품이 없습니다</p>' : c.products.map(p => `
-                  <div class="product-item">
-                    <div class="flex justify-between"><span>${p.name}</span><span class="text-success">${p.price.toLocaleString()}원</span></div>
-                    <div class="product-meta">${p.isFixed ? "고정형" : "재고형"} | ${p.isFixed ? "무제한" : p.stocks.length + "개"}</div>
-                    <div class="flex gap-2 mt-2">
-                      ${p.isFixed ? `<button onclick="editFixed(${p.id})" class="btn btn-warning btn-sm">수정</button>` : `<button onclick="addStock(${p.id})" class="btn btn-success btn-sm">재고추가</button>`}
-                      <button onclick="deleteProduct(${p.id})" class="btn btn-danger btn-sm">삭제</button>
-                    </div>
-                  </div>
-                `).join("")}
-              </div>
-            </div>
-          `).join("");
-        }
-        function showAddCategory() {
-          const name = prompt("카테고리 이름:");
-          if (name) fetch("/api/products/categories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }).then(() => loadProducts());
-        }
-        function addProduct(catId) {
-          document.getElementById("productCategorySelect").value = catId;
-          document.getElementById("addProductModal").classList.remove("hidden");
-        }
-        function hideModal() { document.getElementById("addProductModal").classList.add("hidden"); }
-        document.getElementById("isFixedCheck").onchange = function() { document.getElementById("fixedContentArea").classList.toggle("hidden", !this.checked); };
-        document.getElementById("addProductForm").onsubmit = async function(e) {
-          e.preventDefault();
-          const fd = new FormData(this);
-          await fetch("/api/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: fd.get("name"), price: fd.get("price"), description: fd.get("description"), categoryId: fd.get("categoryId"), isFixed: fd.get("isFixed") === "on", fixedContent: fd.get("fixedContent") }) });
-          hideModal();
-          loadProducts();
-        };
-        async function addStock(id) {
-          const c = prompt("재고 내용:");
-          if (c) { await fetch(`/api/products/${id}/stocks`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: c }) }); loadProducts(); }
-        }
-        async function editFixed(id) {
-          const c = prompt("변경할 콘텐츠:");
-          if (c) { await fetch(`/api/products/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fixedContent: c }) }); loadProducts(); }
-        }
-        async function deleteProduct(id) {
-          if (confirm("삭제하시겠습니까?")) { await fetch(`/api/products/${id}`, { method: "DELETE" }); loadProducts(); }
-        }
-        loadProducts();
-      </script>
-    </main>
+<div class="page-header">
+  <h1 class="title-md">📊 월간 실적</h1>
+</div>
+
+<div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+  <div class="stat-card">
+    <div class="stat-icon">💰</div>
+    <div class="stat-value text-primary" id="monthlySales">로딩중...</div>
+    <div class="stat-label">총 매출</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💳</div>
+    <div class="stat-value text-primary" id="monthlyRecharge">로딩중...</div>
+    <div class="stat-label">총 충전</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🛒</div>
+    <div class="stat-value text-primary" id="salesCount">로딩중...</div>
+    <div class="stat-label">판매 건수</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⚡</div>
+    <div class="stat-value text-primary" id="rechargeCount">로딩중...</div>
+    <div class="stat-label">충전 건수</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">🏆 인기 제품</div>
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>제품명</th>
+          <th>판매건수</th>
+          <th>총매출</th>
+        </tr>
+      </thead>
+      <tbody id="topProducts">
+        <tr>
+          <td colspan="3" class="text-muted">로딩중...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>async function loadStats() { const r = await fetch("/admin/stats"); const d = await r.json(); document.getElementById("monthlySales").textContent = (d.monthlySales || 0).toLocaleString() + "원"; document.getElementById("monthlyRecharge").textContent = (d.monthlyRecharge || 0).toLocaleString() + "원"; document.getElementById("salesCount").textContent = d.salesCount || 0; document.getElementById("rechargeCount").textContent = d.rechargeCount || 0; const tb = document.getElementById("topProducts"); if (d.topProducts && d.topProducts.length > 0) { tb.innerHTML = d.topProducts.map(p => `<tr class="border-t border-gray-700"><td class="py-3">${p.product?.name || "알 수 없음"}</td><td class="py-3">${p._count}</td><td class="py-3">${(p._sum.paidAmount || 0).toLocaleString()}원</td></tr>`).join(""); } } loadStats();
+</script>
+</main>
   </div>
 </body>
 </html>

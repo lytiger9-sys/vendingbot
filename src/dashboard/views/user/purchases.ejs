@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>구매 내역</title>
+  <title>내 대시보드</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,32 +14,56 @@
     <aside class="sidebar">
       <h1 class="sidebar-title">🛒 자판기 봇</h1>
       <nav class="sidebar-nav">
-        <a href="/dashboard" class="nav-link"><span>📊</span> 내 통계</a>
-        <a href="/dashboard/purchases" class="nav-link active"><span>🛍️</span> 구매 내역</a>
+        <a href="/dashboard" class="nav-link active"><span>📊</span> 내 통계</a>
+
+        <a href="/dashboard/purchases-page" class="nav-link"><span>🛍️</span> 구매 내역</a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-id">ID: <%= user.id %></div>
-        <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
+        <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>
     </aside>
     <main class="main-content">
 <div class="page-header">
-  <h1 class="title-md">🛍️ 구매 내역</h1>
+  <h1 class="title-md">📊 내 구매 통계</h1>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card success">
+    <div class="stat-icon">💰</div>
+    <div class="stat-value text-success" id="balance">로딩중...</div>
+    <div class="stat-label">현재 잔액</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🛒</div>
+    <div class="stat-value text-primary" id="totalCount">로딩중...</div>
+    <div class="stat-label">총 구매 횟수</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">💸</div>
+    <div class="stat-value text-warning" id="totalSpent">로딩중...</div>
+    <div class="stat-label">총 소비 금액</div>
+  </div>
+</div>
+
+<div class="card mb-6">
+  <div class="card-header">📈 월별 구매 추이</div>
+  <canvas id="chart" height="100"></canvas>
 </div>
 
 <div class="card">
+  <div class="card-header">🛍️ 최근 구매 내역</div>
   <div class="table-container">
     <table class="table">
       <thead>
         <tr>
           <th>제품</th>
-          <th>결제가격</th>
-          <th>제공 내용</th>
-          <th>후기</th>
+          <th>가격</th>
           <th>일시</th>
+          <th>후기</th>
         </tr>
       </thead>
-      <tbody id="purchasesBody"></tbody>
+      <tbody id="purchases"></tbody>
     </table>
   </div>
 </div>
@@ -48,7 +72,7 @@
   <div class="modal">
     <div class="modal-header">
       ⭐ 후기 작성
-      <button onclick="closeModal()" class="modal-close">×</button>
+      <button onclick="closeReviewModal()" class="modal-close">×</button>
     </div>
     <div class="input-group">
       <label class="input-label">평점</label>
@@ -61,39 +85,111 @@
       </select>
     </div>
     <div class="input-group">
-      <label class="input-label">후기</label>
-      <textarea id="reviewContent" class="input" rows="4" placeholder="구매 후기를 남겨주세요..." style="resize: vertical;"></textarea>
+      <label class="input-label">후기 내용</label>
+      <textarea id="reviewContent" class="input" rows="4" style="resize: vertical;"></textarea>
     </div>
-    <input type="hidden" id="receiptId">
+    <input type="hidden" id="reviewReceiptId">
     <div class="modal-footer">
-      <button onclick="closeModal()" class="btn btn-outline">취소</button>
+      <button onclick="closeReviewModal()" class="btn btn-outline">취소</button>
       <button onclick="submitReview()" class="btn btn-primary">작성완료</button>
     </div>
   </div>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  async function load() {
-    const r = await fetch("/dashboard/purchases");
+  let chart;
+  let purchases = [];
+
+  async function loadUserStats() {
+    const r = await fetch("/dashboard/stats");
     const d = await r.json();
-    document.getElementById("purchasesBody").innerHTML = d.length === 0 ? '<tr><td colspan=5 class="text-muted">구매 내역이 없습니다</td></tr>' : d.map(p => {
-      const reviewBtn = p.hasReview ? '<span class="text-success">완료</span>' : `<button onclick="openModal('${p.id}')" class="text-primary hover:underline">작성하기</button>`;
-      return `<tr><td>${p.product?.name || "알 수 없음"}</td><td>${p.paidAmount.toLocaleString()}원</td><td class="text-muted">${p.deliveredContent || "-"}</td><td>${reviewBtn}</td><td class="text-muted">${new Date(p.purchasedAt).toLocaleString("ko-KR")}</td></tr>`;
+    document.getElementById("balance").textContent = (d.user.balance || 0).toLocaleString() + "원";
+    document.getElementById("totalCount").textContent = d.totalPurchases;
+    document.getElementById("totalSpent").textContent = (d.totalSpent || 0).toLocaleString() + "원";
+    
+    const months = Object.keys(d.monthlyData).sort();
+    const amounts = months.map(m => d.monthlyData[m].amount);
+    
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("chart"), {
+      type: "line",
+      data: {
+        labels: months,
+        datasets: [{
+          label: "소비금액",
+          data: amounts,
+          borderColor: "#5865F2",
+          backgroundColor: "rgba(88,101,242,0.2)",
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  async function loadPurchases() {
+    const r = await fetch("/dashboard/purchases");
+    purchases = await r.json();
+    const tbody = document.getElementById("purchases");
+    
+    if (purchases.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">구매 내역이 없습니다</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = purchases.map(p => {
+      // 바깥 템플릿 리터럴 내부에서 중첩 템플릿 리터럴을 안전하게 처리하기 위해 변수로 분리했습니다.
+      const reviewButton = `<button onclick="openReviewModal('${p.id}')" class="text-blue-400 hover:underline">후기쓰기</button>`;
+      
+      return `
+      <tr class="border-t border-gray-700">
+        <td class="py-3">${p.product?.name || "알 수 없음"}</td>
+        <td class="py-3">${p.paidAmount.toLocaleString()}원</td>
+        <td class="py-3 text-gray-400">${new Date(p.purchasedAt || p.createdAt).toLocaleString("ko-KR")}</td>
+        <td class="py-3">
+          ${p.hasReview ? 
+            '<span class="text-green-400">작성됨</span>' : 
+            reviewButton
+          }
+        </td>
+      </tr>`;
     }).join("");
   }
-  function openModal(id) { document.getElementById("receiptId").value = id; document.getElementById("reviewModal").classList.add("active"); }
-  function closeModal() { document.getElementById("reviewModal").classList.remove("active"); }
+
+  function openReviewModal(id) {
+    document.getElementById("reviewReceiptId").value = id;
+    document.getElementById("reviewModal").classList.remove("hidden");
+  }
+
+  function closeReviewModal() {
+    document.getElementById("reviewModal").classList.add("hidden");
+  }
+
   async function submitReview() {
     const r = await fetch("/dashboard/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        receiptId: document.getElementById("receiptId").value,
+        receiptId: document.getElementById("reviewReceiptId").value,
         rating: document.getElementById("rating").value,
         content: document.getElementById("reviewContent").value
       })
     });
-    if (r.ok) { alert("후기가 등록되었습니다"); closeModal(); load(); }
+    
+    if (r.ok) {
+      alert("후기가 작성되었습니다");
+      closeReviewModal();
+      loadPurchases();
+    } else {
+      alert("후기 작성에 실패했습니다.");
+    }
   }
-  load();
+
+  loadUserStats();
+  loadPurchases();
 </script>
