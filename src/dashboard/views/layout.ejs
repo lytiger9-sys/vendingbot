@@ -23,13 +23,14 @@
           <a href="/admin/roles" class="nav-link"><span>🎭</span> 역할 지급</a>
         <% } else { %>
           <a href="/dashboard" class="nav-link"><span>📊</span> 내 통계</a>
+          <a href="/dashboard/purchases-page" class="nav-link"><span>🛍️</span> 구매 내역</a>
         <% } %>
       </nav>
       
       <div class="sidebar-footer">
         <div class="user-id">ID: <%= (typeof user !== 'undefined' && user && user.id) ? user.id : '사용자' %></div>
         <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
-          <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
+          <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
         <% } %>
         <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>

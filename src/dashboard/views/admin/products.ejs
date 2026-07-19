@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>관리자 대시보드</title>
+  <title>제품 관리</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,8 +14,8 @@
     <aside class="sidebar">
       <h1 class="sidebar-title">🛒 자판기 봇</h1>
       <nav class="sidebar-nav">
-        <a href="/admin" class="nav-link active"><span>📊</span> 월간 실적</a>
-        <a href="/admin/products" class="nav-link"><span>📦</span> 제품</a>
+        <a href="/admin" class="nav-link"><span>📊</span> 월간 실적</a>
+        <a href="/admin/products" class="nav-link active"><span>📦</span> 제품</a>
         <a href="/admin/logs" class="nav-link"><span>📜</span> 로그</a>
         <a href="/admin/settings" class="nav-link"><span>⚙️</span> 설정</a>
         <a href="/admin/embed" class="nav-link"><span>💬</span> 임베드</a>
@@ -24,59 +24,241 @@
       <div class="sidebar-footer">
         <div class="user-id">ID: <%= user.id %></div>
         <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
-                <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
+        <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>
     </aside>
     <main class="main-content">
-<div class="page-header">
-  <h1 class="title-md">📊 월간 실적</h1>
-</div>
+      <div class="page-header">
+        <h1 class="title-md">📦 제품 관리</h1>
+        <button onclick="openCategoryModal()" class="btn btn-primary">📁 카테고리 추가</button>
+      </div>
 
-<div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
-  <div class="stat-card">
-    <div class="stat-icon">💰</div>
-    <div class="stat-value text-primary" id="monthlySales">로딩중...</div>
-    <div class="stat-label">총 매출</div>
+      <div id="categoryList">
+        <div class="text-muted">로딩중...</div>
+      </div>
+    </main>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon">💳</div>
-    <div class="stat-value text-primary" id="monthlyRecharge">로딩중...</div>
-    <div class="stat-label">총 충전</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon">🛒</div>
-    <div class="stat-value text-primary" id="salesCount">로딩중...</div>
-    <div class="stat-label">판매 건수</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon">⚡</div>
-    <div class="stat-value text-primary" id="rechargeCount">로딩중...</div>
-    <div class="stat-label">충전 건수</div>
-  </div>
-</div>
 
-<div class="card">
-  <div class="card-header">🏆 인기 제품</div>
-  <div class="table-container">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>제품명</th>
-          <th>판매건수</th>
-          <th>총매출</th>
-        </tr>
-      </thead>
-      <tbody id="topProducts">
-        <tr>
-          <td colspan="3" class="text-muted">로딩중...</td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- 카테고리 추가 모달 -->
+  <div id="categoryModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">📁 카테고리 추가</div>
+      <div class="input-group">
+        <label class="input-label">카테고리 이름</label>
+        <input type="text" id="categoryName" class="input">
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeCategoryModal()" class="btn btn-outline">취소</button>
+        <button onclick="createCategory()" class="btn btn-primary">추가</button>
+      </div>
+    </div>
   </div>
-</div>
-<script>async function loadStats() { const r = await fetch("/admin/stats"); const d = await r.json(); document.getElementById("monthlySales").textContent = (d.monthlySales || 0).toLocaleString() + "원"; document.getElementById("monthlyRecharge").textContent = (d.monthlyRecharge || 0).toLocaleString() + "원"; document.getElementById("salesCount").textContent = d.salesCount || 0; document.getElementById("rechargeCount").textContent = d.rechargeCount || 0; const tb = document.getElementById("topProducts"); if (d.topProducts && d.topProducts.length > 0) { tb.innerHTML = d.topProducts.map(p => `<tr class="border-t border-gray-700"><td class="py-3">${p.product?.name || "알 수 없음"}</td><td class="py-3">${p._count}</td><td class="py-3">${(p._sum.paidAmount || 0).toLocaleString()}원</td></tr>`).join(""); } } loadStats();
-</script>
-</main>
+
+  <!-- 제품 추가/수정 모달 -->
+  <div id="productModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header" id="productModalTitle">📦 제품 추가</div>
+      <input type="hidden" id="productId">
+      <input type="hidden" id="productCategoryId">
+      <div class="input-group">
+        <label class="input-label">제품명</label>
+        <input type="text" id="productName" class="input">
+      </div>
+      <div class="input-group">
+        <label class="input-label">가격 (원)</label>
+        <input type="number" id="productPrice" class="input">
+      </div>
+      <div class="input-group">
+        <label class="input-label">설명</label>
+        <textarea id="productDescription" class="input" rows="3"></textarea>
+      </div>
+      <div class="input-group">
+        <label class="input-label"><input type="checkbox" id="productIsFixed" onchange="toggleFixed()"> 고정 재고 사용</label>
+      </div>
+      <div id="fixedSection" class="input-group hidden">
+        <label class="input-label">고정 재고 내용</label>
+        <textarea id="productFixedContent" class="input" rows="3"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeProductModal()" class="btn btn-outline">취소</button>
+        <button onclick="saveProduct()" class="btn btn-primary">저장</button>
+      </div>
+    </div>
   </div>
+
+  <!-- 재고 관리 모달 -->
+  <div id="stockModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">⚡ 재고 관리</div>
+      <input type="hidden" id="stockProductId">
+      <div class="input-group">
+        <label class="input-label">새 재고 입력 (줄바꿈으로 구분)</label>
+        <textarea id="stockContent" class="input" rows="10" placeholder="재고1&#10;재고2&#10;재고3"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeStockModal()" class="btn btn-outline">닫기</button>
+        <button onclick="addStock()" class="btn btn-primary">추가하기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadCategories() {
+      const r = await fetch('/api/products');
+      const categories = await r.json();
+      const list = document.getElementById('categoryList');
+      
+      if (categories.length === 0) {
+        list.innerHTML = '<div class="card"><div class="text-muted text-center py-8">카테고리가 없습니다.</div></div>';
+        return;
+      }
+
+      list.innerHTML = categories.map(cat => `
+        <div class="card mb-6">
+          <div class="card-header flex justify-between align-center">
+            <span>📁 ${cat.name}</span>
+            <div class="flex gap-2">
+              <button onclick="openProductModal(${cat.id})" class="btn btn-sm btn-primary">➕ 제품 추가</button>
+              <button onclick="deleteCategory(${cat.id})" class="btn btn-sm btn-danger">삭제</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>제품명</th>
+                  <th>가격</th>
+                  <th>재고</th>
+                  <th>유형</th>
+                  <th>작업</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${cat.products.length === 0 ? '<tr><td colspan="5" class="text-center text-muted">제품이 없습니다.</td></tr>' : 
+                  cat.products.map(p => `
+                  <tr class="border-t border-gray-700">
+                    <td>${p.name}</td>
+                    <td>${p.price.toLocaleString()}원</td>
+                    <td>${p.isFixed ? '∞' : p.stocks.length}</td>
+                    <td>${p.isFixed ? '고정' : '일반'}</td>
+                    <td>
+                      <div class="flex gap-2">
+                        <button onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&apos;")})' class="text-primary hover:underline">수정</button>
+                        ${!p.isFixed ? `<button onclick="openStockModal(${p.id})" class="text-success hover:underline">재고</button>` : ''}
+                        <button onclick="deleteProduct(${p.id})" class="text-danger hover:underline">삭제</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 카테고리 관련
+    function openCategoryModal() { document.getElementById('categoryModal').classList.remove('hidden'); }
+    function closeCategoryModal() { document.getElementById('categoryModal').classList.add('hidden'); }
+    async function createCategory() {
+      const name = document.getElementById('categoryName').value;
+      if (!name) return alert('이름을 입력하세요.');
+      await fetch('/api/products/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      closeCategoryModal();
+      loadCategories();
+    }
+    async function deleteCategory(id) {
+      if (!confirm('카테고리와 포함된 모든 제품이 삭제됩니다. 계속하시겠습니까?')) return;
+      await fetch(`/api/products/categories/${id}`, { method: 'DELETE' });
+      loadCategories();
+    }
+
+    // 제품 관련
+    function toggleFixed() {
+      const isFixed = document.getElementById('productIsFixed').checked;
+      document.getElementById('fixedSection').classList.toggle('hidden', !isFixed);
+    }
+    function openProductModal(catId) {
+      document.getElementById('productModalTitle').textContent = '📦 제품 추가';
+      document.getElementById('productId').value = '';
+      document.getElementById('productCategoryId').value = catId;
+      document.getElementById('productName').value = '';
+      document.getElementById('productPrice').value = '';
+      document.getElementById('productDescription').value = '';
+      document.getElementById('productIsFixed').checked = false;
+      document.getElementById('productFixedContent').value = '';
+      toggleFixed();
+      document.getElementById('productModal').classList.remove('hidden');
+    }
+    function editProduct(p) {
+      document.getElementById('productModalTitle').textContent = '📦 제품 수정';
+      document.getElementById('productId').value = p.id;
+      document.getElementById('productCategoryId').value = p.categoryId;
+      document.getElementById('productName').value = p.name;
+      document.getElementById('productPrice').value = p.price;
+      document.getElementById('productDescription').value = p.description || '';
+      document.getElementById('productIsFixed').checked = p.isFixed;
+      document.getElementById('productFixedContent').value = p.fixedContent || '';
+      toggleFixed();
+      document.getElementById('productModal').classList.remove('hidden');
+    }
+    function closeProductModal() { document.getElementById('productModal').classList.add('hidden'); }
+    async function saveProduct() {
+      const id = document.getElementById('productId').value;
+      const data = {
+        name: document.getElementById('productName').value,
+        price: document.getElementById('productPrice').value,
+        description: document.getElementById('productDescription').value,
+        isFixed: document.getElementById('productIsFixed').checked,
+        fixedContent: document.getElementById('productFixedContent').value,
+        categoryId: document.getElementById('productCategoryId').value
+      };
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `/api/products/${id}` : '/api/products';
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      closeProductModal();
+      loadCategories();
+    }
+    async function deleteProduct(id) {
+      if (!confirm('삭제하시겠습니까?')) return;
+      await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      loadCategories();
+    }
+
+    // 재고 관련
+    function openStockModal(id) {
+      document.getElementById('stockProductId').value = id;
+      document.getElementById('stockContent').value = '';
+      document.getElementById('stockModal').classList.remove('hidden');
+    }
+    function closeStockModal() { document.getElementById('stockModal').classList.add('hidden'); }
+    async function addStock() {
+      const id = document.getElementById('stockProductId').value;
+      const content = document.getElementById('stockContent').value;
+      if (!content) return alert('내용을 입력하세요.');
+      const stocks = content.split('\n').filter(s => s.trim());
+      for (const s of stocks) {
+        await fetch(`/api/products/${id}/stocks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: s })
+        });
+      }
+      alert(`${stocks.length}개의 재고가 추가되었습니다.`);
+      closeStockModal();
+      loadCategories();
+    }
+
+    loadCategories();
+  </script>
+  <script src="/js/common.js"></script>
 </body>
 </html>

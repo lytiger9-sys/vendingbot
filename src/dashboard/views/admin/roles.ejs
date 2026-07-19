@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>구매/충전 로그</title>
+  <title>역할 지급 설정</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,147 +16,108 @@
       <nav class="sidebar-nav">
         <a href="/admin" class="nav-link"><span>📊</span> 월간 실적</a>
         <a href="/admin/products" class="nav-link"><span>📦</span> 제품</a>
-        <a href="/admin/logs" class="nav-link active"><span>📜</span> 로그</a>
+        <a href="/admin/logs" class="nav-link"><span>📜</span> 로그</a>
         <a href="/admin/settings" class="nav-link"><span>⚙️</span> 설정</a>
         <a href="/admin/embed" class="nav-link"><span>💬</span> 임베드</a>
-        <a href="/admin/roles" class="nav-link"><span>🎭</span> 역할 지급</a>
+        <a href="/admin/roles" class="nav-link active"><span>🎭</span> 역할 지급</a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-id">ID: <%= user.id %></div>
-
         <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
-                <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
+        <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>
     </aside>
     <main class="main-content">
-<div class="page-header">
-  <h1 class="title-md">📜 구매/충전 로그</h1>
-</div>
+      <div class="page-header">
+        <h1 class="title-md">🎭 역할 지급 설정</h1>
+      </div>
 
-<div class="flex gap-4 mb-6">
-  <button onclick="showTab('payments')" id="tabPayments" class="btn btn-primary">충전 로그</button>
-  <button onclick="showTab('receipts')" id="tabReceipts" class="btn btn-outline">구매 로그</button>
-</div>
+      <div class="card mb-6">
+        <div class="card-header">➕ 새 역할 보상 추가</div>
+        <div class="grid-2" style="grid-template-columns: 1fr 1fr auto; align-items: end; gap: 1rem;">
+          <div class="input-group">
+            <label class="input-label">누적 소비 금액 (원)</label>
+            <input type="number" id="spentLimit" placeholder="예: 10000" class="input">
+          </div>
+          <div class="input-group">
+            <label class="input-label">지급할 역할 ID</label>
+            <input type="text" id="roleId" placeholder="Discord 역할 ID" class="input">
+          </div>
+          <button onclick="addRole()" class="btn btn-primary" style="margin-bottom: 0.5rem;">추가하기</button>
+        </div>
+      </div>
 
-<div id="paymentsTab" class="card">
-  <div class="flex gap-4 mb-4">
-    <select id="paymentStatusFilter" onchange="loadPayments()" class="input" style="width: 150px;">
-      <option value="">전체</option>
-      <option value="PENDING">대기중</option>
-      <option value="COMPLETED">완료</option>
-      <option value="REJECTED">거절</option>
-    </select>
-    <input type="text" id="paymentSearch" placeholder="검색 (입금자명/유저ID)" class="input">
-    <button onclick="loadPayments()" class="btn btn-primary">검색</button>
-  </div>
-  <div class="table-container">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>유저</th>
-          <th>입금자명</th>
-          <th>금액</th>
-          <th>상태</th>
-          <th>일시</th>
-          <th>작업</th>
-        </tr>
-      </thead>
-      <tbody id="paymentsList"></tbody>
-    </table>
-  </div>
-  <div id="paymentsPagination" class="mt-4 flex gap-2 justify-center"></div>
-</div>
-
-<div id="receiptsTab" class="card" style="display: none;">
-  <div class="flex gap-4 mb-4">
-    <input type="text" id="receiptSearch" placeholder="검색 (유저ID/제품ID)" class="input">
-    <button onclick="loadReceipts()" class="btn btn-primary">검색</button>
-  </div>
-  <div class="table-container">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>유저</th>
-          <th>제품</th>
-          <th>결제금액</th>
-          <th>후기</th>
-          <th>일시</th>
-        </tr>
-      </thead>
-      <tbody id="receiptsList"></tbody>
-    </table>
-  </div>
-  <div id="receiptsPagination" class="mt-4 flex gap-2 justify-center"></div>
-</div>
-<script>
-  let paymentsPage = 0, receiptsPage = 0;
-    function showTab(t) {
-      document.getElementById("paymentsTab").style.display = t === "payments" ? "block" : "none";
-      document.getElementById("receiptsTab").style.display = t === "receipts" ? "block" : "none";
-      document.getElementById("tabPayments").className = t === "payments" ? "btn btn-primary" : "btn btn-outline";
-      document.getElementById("tabReceipts").className = t === "receipts" ? "btn btn-primary" : "btn btn-outline";
-    }
-
-  async function loadPayments() {
-    const status = document.getElementById("paymentStatusFilter").value;
-    const search = document.getElementById("paymentSearch").value;
-    const r = await fetch(`/api/logs/payments?status=${status}&search=${search}&limit=20&offset=${paymentsPage * 20}`);
-    const d = await r.json();
-    document.getElementById("paymentsList").innerHTML = d.payments.map(p => {
-      let statusClass = "badge";
-      if (p.status === "COMPLETED") statusClass = "badge badge-success";
-      else if (p.status === "PENDING") statusClass = "badge badge-warning";
-      else if (p.status === "REJECTED") statusClass = "badge badge-danger";
-      
-      return `<tr>
-        <td>${p.userId}</td>
-        <td>${p.senderName}</td>
-        <td>${p.amount.toLocaleString()}원</td>
-        <td><span class="${statusClass}">${p.status}</span></td>
-        <td class="text-muted">${new Date(p.createdAt).toLocaleString("ko-KR")}</td>
-        <td>${p.status === "PENDING" ? `<button onclick="approvePayment('${p.id}')" class="text-success hover:underline">승인</button> | <button onclick="rejectPayment('${p.id}')" class="text-danger hover:underline">거절</button>` : "-"}</td>
-      </tr>`;
-    }).join("");
-  }
-
-    async function loadReceipts() {
-    const search = document.getElementById("receiptSearch").value;
-    const r = await fetch(`/api/logs/receipts?search=${search}&limit=20&offset=${receiptsPage * 20}`);
-    const d = await r.json();
-    document.getElementById("receiptsList").innerHTML = d.receipts.map(r => `
-      <tr>
-        <td>${r.userId || '-'}</td>
-        <td>${r.product?.name || r.productId || '-'}</td>
-        <td>${r.paidAmount.toLocaleString()}원</td>
-        <td>${r.hasReview ? "<span class=\"text-success\">O</span>" : "X"}</td>
-        <td class="text-muted">${new Date(r.purchasedAt || r.createdAt).toLocaleString("ko-KR")}</td>
-      </tr>`).join("");
-  }
-
-  async function approvePayment(id) {
-    if (!confirm('승인하시겠습니까?')) return;
-    await fetch(`/api/logs/payments/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "COMPLETED" })
-    });
-    loadPayments();
-  }
-
-  async function rejectPayment(id) {
-    if (!confirm('거절하시겠습니까?')) return;
-    await fetch(`/api/logs/payments/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "REJECTED" })
-    });
-    loadPayments();
-  }
-
-        loadPayments();
-</script>
-<script src="/js/common.js"></script>
+      <div class="card">
+        <div class="card-header">📜 역할 보상 목록</div>
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>누적 소비 금액</th>
+                <th>역할 ID</th>
+                <th>작업</th>
+              </tr>
+            </thead>
+            <tbody id="roleList">
+              <tr>
+                <td colspan="3" class="text-muted">로딩중...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </main>
   </div>
+
+  <script>
+    async function loadRoles() {
+      const r = await fetch('/api/admin/roles');
+      const d = await r.json();
+      const tb = document.getElementById('roleList');
+      if (d.length === 0) {
+        tb.innerHTML = '<tr><td colspan="3" class="text-muted">설정된 역할 보상이 없습니다.</td></tr>';
+        return;
+      }
+      tb.innerHTML = d.map(r => `
+        <tr class="border-t border-gray-700">
+          <td class="py-3">${r.spentLimit.toLocaleString()}원</td>
+          <td class="py-3">${r.roleId}</td>
+          <td class="py-3">
+            <button onclick="deleteRole(${r.id})" class="text-danger hover:underline">삭제</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function addRole() {
+      const spentLimit = document.getElementById('spentLimit').value;
+      const roleId = document.getElementById('roleId').value;
+      if (!spentLimit || !roleId) return alert('모든 필드를 입력해주세요.');
+
+      const r = await fetch('/api/admin/roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spentLimit, roleId })
+      });
+
+      if (r.ok) {
+        document.getElementById('spentLimit').value = '';
+        document.getElementById('roleId').value = '';
+        loadRoles();
+      } else {
+        alert('추가 실패');
+      }
+    }
+
+    async function deleteRole(id) {
+      if (!confirm('정말 삭제하시겠습니까?')) return;
+      const r = await fetch(`/api/admin/roles/${id}`, { method: 'DELETE' });
+      if (r.ok) loadRoles();
+      else alert('삭제 실패');
+    }
+
+    loadRoles();
+  </script>
+  <script src="/js/common.js"></script>
 </body>
 </html>
