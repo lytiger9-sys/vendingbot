@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>시스템 설정</title>
+  <title>임베드 설정</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,8 +17,8 @@
         <a href="/admin" class="nav-link"><span>📊</span> 월간 실적</a>
         <a href="/admin/products" class="nav-link"><span>📦</span> 제품</a>
         <a href="/admin/logs" class="nav-link"><span>📜</span> 로그</a>
-        <a href="/admin/settings" class="nav-link active"><span>⚙️</span> 설정</a>
-        <a href="/admin/embed" class="nav-link"><span>💬</span> 임베드</a>
+        <a href="/admin/settings" class="nav-link"><span>⚙️</span> 설정</a>
+        <a href="/admin/embed" class="nav-link active"><span>💬</span> 임베드</a>
         <a href="/admin/roles" class="nav-link"><span>🎭</span> 역할 지급</a>
       </nav>
       <div class="sidebar-footer">
@@ -29,82 +29,236 @@
     </aside>
     <main class="main-content">
       <div class="page-header">
-        <h1 class="title-md">⚙️ 시스템 설정</h1>
+        <h1 class="title-md">💬 임베드 설정</h1>
       </div>
 
-      <div class="card">
-        <div class="card-header">📜 로그 채널 설정</div>
-        
-        <div class="input-group">
-          <label class="input-label">구매 로그 채널 ID</label>
-          <div class="flex gap-2">
-            <input type="text" id="PURCHASE_LOG_CHANNEL" placeholder="채널 ID 입력" class="input" style="flex: 1;">
-            <button onclick="saveSetting('PURCHASE_LOG_CHANNEL')" class="btn btn-primary">저장</button>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">📝 임베드 편집</div>
+          
+          <div class="input-group">
+            <label class="input-label">제목</label>
+            <input type="text" id="embedTitle" placeholder="자판기에 오신 것을 환영합니다" class="input">
           </div>
-          <p class="text-muted mt-1">제품 구매 시 로그가 전송될 채널입니다.</p>
+
+          <div class="input-group">
+            <label class="input-label">설명</label>
+            <textarea id="embedDescription" placeholder="아래 버튼을 눌러 원하는 서비스를 이용하세요." class="input textarea" rows="8"></textarea>
+          </div>
+
+          <div class="grid-2">
+            <div class="input-group">
+              <label class="input-label">색상 (Hex)</label>
+              <div class="flex gap-2">
+                <input type="color" id="embedColorPicker" value="#5865F2" class="color-picker">
+                <input type="text" id="embedColor" placeholder="#5865F2" class="input" style="flex: 1;">
+              </div>
+            </div>
+            <div class="input-group">
+              <label class="input-label">푸터 텍스트</label>
+              <input type="text" id="embedFooter" placeholder="자판기 봇" class="input">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">이미지 URL (선택)</label>
+            <input type="text" id="embedImage" placeholder="https://example.com/image.png" class="input">
+          </div>
+
+          <button onclick="saveEmbed()" id="saveBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+            💾 저장하기
+          </button>
         </div>
 
-        <div class="input-group mt-6">
-          <label class="input-label">충전 로그 채널 ID</label>
-          <div class="flex gap-2">
-            <input type="text" id="RECHARGE_LOG_CHANNEL" placeholder="채널 ID 입력" class="input" style="flex: 1;">
-            <button onclick="saveSetting('RECHARGE_LOG_CHANNEL')" class="btn btn-primary">저장</button>
-          </div>
-          <p class="text-muted mt-1">사용자가 잔액을 충전했을 때 로그가 전송될 채널입니다.</p>
-        </div>
-
-        <div class="input-group mt-6">
-          <label class="input-label">후기 로그 채널 ID</label>
-          <div class="flex gap-2">
-            <input type="text" id="REVIEW_LOG_CHANNEL" placeholder="채널 ID 입력" class="input" style="flex: 1;">
-            <button onclick="saveSetting('REVIEW_LOG_CHANNEL')" class="btn btn-primary">저장</button>
-          </div>
-          <p class="text-muted mt-1">사용자가 후기를 작성했을 때 로그가 전송될 채널입니다.</p>
+        <div class="card">
+          <div class="card-header">👁️ Discord 미리보기</div>
+          <div id="embedPreview" class="embed-preview">
+            </div>
         </div>
       </div>
 
-      <div class="card mt-6">
-        <div class="card-header">🔗 기타 설정</div>
+      <div class="card test-card-section">
+        <div class="card-header">🎯 테스트</div>
         <div class="input-group">
-          <label class="input-label">서버 초대 링크</label>
-          <div class="flex gap-2">
-            <input type="text" id="SERVER_INVITE_LINK" placeholder="https://discord.gg/..." class="input" style="flex: 1;">
-            <button onclick="saveSetting('SERVER_INVITE_LINK')" class="btn btn-primary">저장</button>
-          </div>
+          <label class="input-label">채널 ID</label>
+          <input type="text" id="testChannelId" placeholder="테스트 메시지를 보낼 채널 ID" class="input">
         </div>
+        <button onclick="testEmbed()" class="btn btn-success" id="testBtn">
+          📤 이 채널로 임베드 보내기
+        </button>
       </div>
     </main>
   </div>
 
+  <style>
+    .textarea { resize: vertical; min-height: 100px; }
+    .color-picker { width: 50px; height: 40px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; }
+    .card { min-height: 580px; }
+    .embed-preview {
+      background: #36393f;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .embed-item {
+      background: #2f3136;
+      border-left: 4px solid #5865F2;
+      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      color: #dcddde;
+    }
+    .embed-item .embed-title {
+      color: #fff;
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .embed-item .embed-desc {
+      color: #b9bbbe;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .embed-item .embed-footer {
+      color: #72767d;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    .embed-item .embed-image {
+      width: 100%;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+    }
+    
+    /* 🛠️ 추가된 스타일: 누락되었던 테스트 카드 상단 여백 보정 */
+    .test-card-section {
+      margin-top: 24px !important;
+      min-height: auto !important;
+      padding: 16px 24px !important;
+    }
+  </style>
+
   <script>
-    async function loadSettings() {
+    const preview = document.getElementById('embedPreview');
+    const colorPicker = document.getElementById('embedColorPicker');
+    const colorInput = document.getElementById('embedColor');
+    const saveBtn = document.getElementById('saveBtn');
+    
+    let originalValues = {};
+
+    colorPicker.addEventListener('input', (e) => {
+      colorInput.value = e.target.value;
+      updatePreview();
+      checkChanges();
+    });
+    colorInput.addEventListener('input', (e) => {
+      if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+        colorPicker.value = e.target.value;
+        updatePreview();
+        checkChanges();
+      }
+    });
+
+    function checkChanges() {
+      const current = {
+        title: document.getElementById('embedTitle').value,
+        description: document.getElementById('embedDescription').value,
+        color: document.getElementById('embedColor').value,
+        footerText: document.getElementById('embedFooter').value,
+        imageUrl: document.getElementById('embedImage').value
+      };
+      
+      const hasChanges = Object.keys(current).some(key => current[key] !== originalValues[key]);
+      
+      if (hasChanges) {
+        saveBtn.className = 'btn btn-primary';
+        saveBtn.innerHTML = '💾 저장하기';
+      } else {
+        saveBtn.className = 'btn';
+        saveBtn.style.background = '#666';
+        saveBtn.style.color = '#ccc';
+        saveBtn.innerHTML = '✓ 변경사항 없음';
+      }
+    }
+
+    function updatePreview() {
+      const title = document.getElementById('embedTitle').value || '제목';
+      const desc = document.getElementById('embedDescription').value || '설명';
+      const color = colorInput.value || '#5865F2';
+      const footer = document.getElementById('embedFooter').value;
+      const image = document.getElementById('embedImage').value;
+
+      let html = `<div class="embed-item" style="border-left-color: ${color};">`;
+      html += `<div class="embed-title">${escapeHtml(title)}</div>`;
+      html += `<div class="embed-desc">${escapeHtml(desc)}</div>`;
+      if (footer) html += `<div class="embed-footer">${escapeHtml(footer)}</div>`;
+      if (image) html += `<img src="${escapeHtml(image)}" class="embed-image" onerror="this.style.display='none'">`;
+      html += `</div>`;
+      preview.innerHTML = html;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    ['embedTitle', 'embedDescription', 'embedFooter', 'embedImage'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          updatePreview();
+          checkChanges();
+        });
+      }
+    });
+
+    async function loadEmbed() {
       try {
-        const r = await fetch('/api/settings');
+        const r = await fetch('/api/settings/embed');
         const d = await r.json();
         
-        if (d.settings) {
-          d.settings.forEach(s => {
-            const el = document.getElementById(s.key);
-            if (el) el.value = s.value;
-          });
-        }
+        originalValues = {
+          title: d.embedSettings?.title || '',
+          description: d.embedSettings?.description || '',
+          color: d.embedSettings?.color || '#5865F2',
+          footerText: d.embedSettings?.footerText || '',
+          imageUrl: d.embedSettings?.imageUrl || ''
+        };
+        
+        document.getElementById('embedTitle').value = originalValues.title;
+        document.getElementById('embedDescription').value = originalValues.description;
+        document.getElementById('embedColor').value = originalValues.color;
+        document.getElementById('embedColorPicker').value = originalValues.color;
+        document.getElementById('embedFooter').value = originalValues.footerText;
+        document.getElementById('embedImage').value = originalValues.imageUrl;
+        
+        updatePreview();
+        checkChanges();
       } catch (e) {
         console.error('설정 로드 실패:', e);
       }
     }
 
-    async function saveSetting(key) {
-      const value = document.getElementById(key).value.trim();
-      if (!value) return alert('값을 입력해주세요.');
+    async function saveEmbed() {
+      const data = {
+        title: document.getElementById('embedTitle').value,
+        description: document.getElementById('embedDescription').value,
+        color: document.getElementById('embedColor').value,
+        footerText: document.getElementById('embedFooter').value,
+        imageUrl: document.getElementById('embedImage').value
+      };
 
       try {
-        const r = await fetch('/api/settings', {
+        const r = await fetch('/api/settings/embed', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, value })
+          body: JSON.stringify(data)
         });
         if (r.ok) {
-          toast('설정이 저장되었습니다.', 'success');
+          originalValues = { ...data };
+          checkChanges();
+          toast('임베드 설정이 저장되었습니다.', 'success');
         } else {
           throw new Error('저장 실패');
         }
@@ -113,7 +267,46 @@
       }
     }
 
-    loadSettings();
+    async function testEmbed() {
+      const channelId = document.getElementById('testChannelId').value.trim();
+      if (!channelId) {
+        toast('채널 ID를 입력해주세요.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('testBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ 전송 중...';
+
+      const data = {
+        title: document.getElementById('embedTitle').value,
+        description: document.getElementById('embedDescription').value,
+        color: document.getElementById('embedColor').value,
+        footerText: document.getElementById('embedFooter').value,
+        imageUrl: document.getElementById('embedImage').value
+      };
+
+      try {
+        const r = await fetch('/api/settings/embed/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data, channelId })
+        });
+        const result = await r.json();
+        if (result.success) {
+          toast('테스트 메시지를 전송했습니다!', 'success');
+        } else {
+          throw new Error(result.error);
+        }
+      } catch (e) {
+        toast('전송 실패: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📤 이 채널로 임베드 보내기';
+      }
+    }
+
+    loadEmbed();
   </script>
   <script src="/js/common.js"></script>
 </body>
