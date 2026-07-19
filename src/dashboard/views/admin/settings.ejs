@@ -27,109 +27,184 @@
         <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
       </div>
     </aside>
+    
     <main class="main-content">
-<div class="page-header">
-  <h1 class="title-md">⚙️ 자동충전/로그 설정</h1>
-</div>
+      <div class="page-header">
+        <h1 class="title-md">⚙️ 자동충전/로그 설정</h1>
+      </div>
 
-<div class="grid-2 mb-6">
-  <div class="card">
-    <div class="card-header">💰 계좌 정보</div>
-    <div class="input-group">
-      <input type="text" id="bankInfo" placeholder="은행명/계좌번호 (예: 국민 123-456-789)" class="input">
-    </div>
-    <div class="input-group">
-      <input type="number" id="minDeposit" placeholder="최소 입금 금액" class="input">
-    </div>
-    <button onclick="saveBankSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
+      <div class="settings-card-grid mb-6">
+        <div class="card setting-equal-card">
+          <div class="card-header">💰 계좌 정보</div>
+          
+          <div class="card-inner-flow left-inputs-balance">
+            <div class="input-group">
+              <input type="text" id="bankInfo" placeholder="은행명/계좌번호 (예: 국민 123-456-789)" class="input">
+            </div>
+            <div class="input-group">
+              <input type="number" id="minDeposit" placeholder="최소 입금 금액" class="input">
+            </div>
+          </div>
+          
+          <div class="card-action-row">
+            <button onclick="saveBankSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
+          </div>
+        </div>
+        
+        <div class="card setting-equal-card">
+          <div class="card-header">📝 로그 채널 ID</div>
+          
+          <div class="card-inner-flow right-inputs-balance">
+            <div class="input-group">
+              <input type="text" id="manualLogChannel" placeholder="수동충전 로그 채널 ID" class="input">
+            </div>
+            <div class="input-group">
+              <input type="text" id="purchaseLogChannel" placeholder="구매 로그 채널 ID" class="input">
+            </div>
+            <div class="input-group">
+              <input type="text" id="failLogChannel" placeholder="충전 실패 로그 채널 ID" class="input">
+            </div>
+          </div>
+          
+          <div class="card-action-row">
+            <button onclick="saveChannelSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">📱 SMS 자동충전 가이드</div>
+        <div class="flex gap-4 mb-4">
+          <button onclick="showGuide('android')" id="btnAndroid" class="btn btn-success">안드로이드</button>
+          <button onclick="showGuide('ios')" id="btnIos" class="btn btn-outline">아이폰</button>
+        </div>
+        <div id="guideContent" class="guide-box"></div>
+      </div>
+    </main>
   </div>
-  <div class="card">
-    <div class="card-header">📝 로그 채널 ID</div>
-    <div class="input-group">
-      <input type="text" id="manualLogChannel" placeholder="수동충전 로그 채널 ID" class="input">
-    </div>
-    <div class="input-group">
-      <input type="text" id="purchaseLogChannel" placeholder="구매 로그 채널 ID" class="input">
-    </div>
-    <div class="input-group">
-      <input type="text" id="failLogChannel" placeholder="충전 실패 로그 채널 ID" class="input">
-    </div>
-    <button onclick="saveChannelSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
-  </div>
-</div>
 
-<div class="card">
-  <div class="card-header">📱 SMS 자동충전 가이드</div>
-  <div class="flex gap-4 mb-4">
-    <button onclick="showGuide('android')" id="btnAndroid" class="btn btn-success">안드로이드</button>
-    <button onclick="showGuide('ios')" id="btnIos" class="btn btn-outline">아이폰</button>
-  </div>
-  <div id="guideContent" class="guide-box"></div>
-</div>
-
-<script>
-  // 키값 매핑 테이블을 만들어 에러 발생 가능성을 원천 차단했습니다.
-  const keyToIdMap = {
-    "BANK_INFO": "bankInfo",
-    "MIN_DEPOSIT": "minDeposit",
-    "MANUAL_LOG_CHANNEL": "manualLogChannel",
-    "PURCHASE_LOG_CHANNEL": "purchaseLogChannel",
-    "FAIL_LOG_CHANNEL": "failLogChannel"
-  };
-
-  async function loadSettings() {
-    try {
-      const r = await fetch("/api/settings");
-      const d = await r.json();
-      
-      d.settings.forEach(s => {
-        const targetId = keyToIdMap[s.key];
-        if (targetId) {
-          const el = document.getElementById(targetId);
-          if (el) el.value = s.value;
-        }
-      });
-    } catch (e) {
-      console.error("설정을 불러오는데 실패했습니다:", e);
-    }
-  }
-
-  // 단일 설정 저장용 공통 함수
-  async function saveSetting(k, v) {
-    return await fetch("/api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: k, value: v })
-    });
-  }
-
-  // 계좌 정보 그룹 일괄 저장
-  async function saveBankSettings() {
-    const bankInfo = document.getElementById("bankInfo").value;
-    const minDeposit = document.getElementById("minDeposit").value;
-
-    await saveSetting("BANK_INFO", bankInfo);
-    await saveSetting("MIN_DEPOSIT", minDeposit);
-    alert("계좌 정보가 저장되었습니다.");
-  }
-
-  // 로그 채널 설정 일괄 저장
-  async function saveChannelSettings() {
-    const ids = ["MANUAL_LOG_CHANNEL", "PURCHASE_LOG_CHANNEL", "FAIL_LOG_CHANNEL"];
-    const vals = [
-      document.getElementById("manualLogChannel").value,
-      document.getElementById("purchaseLogChannel").value,
-      document.getElementById("failLogChannel").value
-    ];
-
-    for (let i = 0; i < ids.length; i++) {
-      if (vals[i] !== undefined) {
-        await saveSetting(ids[i], vals[i]);
+  <style>
+    /* 🛠️ 두 카드의 크기 및 정렬을 동일하게 제어하는 고정 프레임 구조 */
+    @media (min-width: 769px) {
+      .settings-card-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* 좌우 가로폭 5:5 동일 배분 */
+        gap: 24px;
       }
     }
-    alert("로그 채널 설정이 저장되었습니다.");
-  }
-  const androidGuide = `<안드로이드 SMS 웹훅 설정>
+
+    .setting-equal-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%; /* 카드 자체의 외부 총 높이를 고정 일치시킴 */
+      min-height: 340px; /* 고정 크기를 잡기 위한 여유 스펙 설정 */
+    }
+
+    .setting-equal-card .card-header {
+      margin-bottom: 12px;
+    }
+
+    /* 입력란들이 렌더링되는 가상의 세로 층(Flow) 박스 */
+    .card-inner-flow {
+      display: flex;
+      flex-direction: column;
+      flex: 1; /* 가용한 카드 여백 영역을 다 채우도록 지정 */
+    }
+
+    /* ✨ 핵심 교정: 왼쪽 카드는 2칸이므로 가상의 2, 4층에 자리잡도록 위아래 공백을 균등 분할 */
+    .card-inner-flow.left-inputs-balance {
+      justify-content: space-around; 
+      padding: 10px 0; /* 외곽 미세 밸런스 조정 */
+    }
+
+    /* 오른쪽 카드는 3칸이므로 위아래 꽉 채워 1, 3, 5층 형태로 정렬하도록 제어 */
+    .card-inner-flow.right-inputs-balance {
+      justify-content: space-between;
+    }
+
+    /* 기본 마진 취소 처리 */
+    .setting-equal-card .input-group {
+      margin-bottom: 0 !important;
+    }
+
+    /* 두 카드의 [저장] 버튼 위치를 하단 바닥에 정위치 고정 */
+    .card-action-row {
+      margin-top: auto;
+      padding-top: 16px;
+    }
+
+    .guide-box {
+      background: var(--bg-darker, #252830);
+      border: 1px solid var(--border-color, #333);
+      border-radius: 8px;
+      padding: 1.25rem;
+      color: #dcddde;
+      font-family: monospace;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+  </style>
+
+  <script>
+    const keyToIdMap = {
+      "BANK_INFO": "bankInfo",
+      "MIN_DEPOSIT": "minDeposit",
+      "MANUAL_LOG_CHANNEL": "manualLogChannel",
+      "PURCHASE_LOG_CHANNEL": "purchaseLogChannel",
+      "FAIL_LOG_CHANNEL": "failLogChannel"
+    };
+
+    async function loadSettings() {
+      try {
+        const r = await fetch("/api/settings");
+        const d = await r.json();
+        
+        d.settings.forEach(s => {
+          const targetId = keyToIdMap[s.key];
+          if (targetId) {
+            const el = document.getElementById(targetId);
+            if (el) el.value = s.value;
+          }
+        });
+      } catch (e) {
+        console.error("설정을 불러오는데 실패했습니다:", e);
+      }
+    }
+
+    async function saveSetting(k, v) {
+      return await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: k, value: v })
+      });
+    }
+
+    async function saveBankSettings() {
+      const bankInfo = document.getElementById("bankInfo").value;
+      const minDeposit = document.getElementById("minDeposit").value;
+
+      await saveSetting("BANK_INFO", bankInfo);
+      await saveSetting("MIN_DEPOSIT", minDeposit);
+      alert("계좌 정보가 저장되었습니다.");
+    }
+
+    async function saveChannelSettings() {
+      const ids = ["MANUAL_LOG_CHANNEL", "PURCHASE_LOG_CHANNEL", "FAIL_LOG_CHANNEL"];
+      const vals = [
+        document.getElementById("manualLogChannel").value,
+        document.getElementById("purchaseLogChannel").value,
+        document.getElementById("failLogChannel").value
+      ];
+
+      for (let i = 0; i < ids.length; i++) {
+        if (vals[i] !== undefined) {
+          await saveSetting(ids[i], vals[i]);
+        }
+      }
+      alert("로그 채널 설정이 저장되었습니다.");
+    }
+
+    const androidGuide = `<안드로이드 SMS 웹훅 설정>
 
 1. SMS Forwarder 앱 설치
 2. Sender > Web 설정
@@ -138,7 +213,7 @@
 5. Rules > SMS 필터 설정
 6. 입금 문구 포함 시 동작하도록 설정`;
 
-  const iosGuide = `<아이폰 Shortcuts 설정>
+    const iosGuide = `<아이폰 Shortcuts 설정>
 
 1. 단축어 앱 > 자동화 탭
 2. 메시지 트리거 추가
@@ -150,11 +225,14 @@
 8. Key: content, Value: 메시지 텍스트`;
 
     function showGuide(type) {
-    document.getElementById("guideContent").textContent = type === "android" ? androidGuide : iosGuide;
-    document.getElementById("btnAndroid").className = type === "android" ? "btn btn-success" : "btn btn-outline";
-    document.getElementById("btnIos").className = type === "ios" ? "btn btn-success" : "btn btn-outline";
-  }
+      document.getElementById("guideContent").textContent = type === "android" ? androidGuide : iosGuide;
+      document.getElementById("btnAndroid").className = type === "android" ? "btn btn-success" : "btn btn-outline";
+      document.getElementById("btnIos").className = type === "ios" ? "btn btn-success" : "btn btn-outline";
+    }
 
-  loadSettings();
-  showGuide("android");
-</script>
+    loadSettings();
+    showGuide("android");
+  </script>
+  <script src="/js/common.js"></script>
+</body>
+</html>
