@@ -15,7 +15,16 @@ export async function processPayment(data) {
   }
   const amount = parseInt(amountMatch[1].replace(/,/g, ''));
 
-  // 2. 현재 DB에 등록된 '동일한 금액'의 대기 중인 모든 신청 건(PENDING)들을 먼저 긁어옵니다.
+  // 2. 최소 입금 금액 체크
+  const minDepositSetting = await prisma.systemSetting.findUnique({ where: { key: 'MIN_DEPOSIT' } });
+  const minAmount = minDepositSetting ? parseInt(minDepositSetting.value) : 1000;
+  
+  if (amount < minAmount) {
+    console.log(`❌ [자동 충전 실패] 최소 입금 금액(${minAmount.toLocaleString()}원) 미달: ${amount.toLocaleString()}원`);
+    return;
+  }
+
+  // 3. 현재 DB에 등록된 '동일한 금액'의 대기 중인 모든 신청 건(PENDING)들을 먼저 긁어옵니다.
   const pendingPaymentsForAmount = await prisma.payment.findMany({
     where: {
       status: 'PENDING',
@@ -25,27 +34,40 @@ export async function processPayment(data) {
   });
 
   if (pendingPaymentsForAmount.length === 0) {
-    console.log(`❌ [자동 충전 실패] ${amount.toLocaleString()}원 신청 건 자체가 존재하지 않습니다.`);
+    console.log(`❌ [자동 충전 실패] ${amount.toLocaleString()}원 신청 건이 존재하지 않습니다.`);
     return;
   }
 
-  // 3. 문자열 내에 대기자 이름이 포함되어 있는지 교차 검증 (2중 보안 매칭)
-  // 문장의 순서나 줄바꿈 위치에 상관없이, 알림 메시지 전체 본문 안에 유저가 신청한 이름이 적혀있는지 찾습니다.
+  // 4. 문자열 내에 대기자 이름이 포함되어 있는지 교차 검증 (2중 보안 매칭)
   let matchedPayment = null;
 
   for (const payment of pendingPaymentsForAmount) {
     const trimmedSender = payment.senderName.trim();
     
-    // 알림 메시지 텍스트 전체에 신청자 이름(예: "오정민")이 단어로 포함되어 있는지 검사
+    // 알림 메시지 텍스트 전체에 신청자 이름이 단어로 포함되어 있는지 검사
     if (content.includes(trimmedSender)) {
       matchedPayment = payment;
       break; 
     }
   }
 
-  // 4. 만약 이름 검증까지 통과한 신청 건이 없다면 스킵
+  // 5. 만약 이름 검증까지 통과한 신청 건이 없다면 스킵
   if (!matchedPayment) {
-    console.log(`❌ [자동 충전 실패] 금액(${amount.toLocaleString()}원)은 맞으나, 본문 내에서 일치하는 신청자 이름을 찾지 못했습니다.`);
+    console.log(`❌ [자동 충전 실패] 금액(${amount.toLocaleString()}원)은 맞으나, 신청자 이름 불일치.`);
+    return;
+  }
+
+  // 6. 만료된 결제 건 체크 (5분 초과)
+  const createdAt = new Date(matchedPayment.createdAt);
+  const now = new Date();
+  const diffMinutes = (now - createdAt) / 1000 / 60;
+  
+  if (diffMinutes > 5) {
+    await prisma.payment.update({
+      where: { id: matchedPayment.id },
+      data: { status: 'EXPIRED', expired: true }
+    });
+    console.log(`❌ [자동 충전 실패] ${matchedPayment.senderName} 님의 신청 건이 5분 초과로 만료됨.`);
     return;
   }
 

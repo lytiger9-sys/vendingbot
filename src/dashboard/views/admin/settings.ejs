@@ -23,7 +23,7 @@
       </nav>
       <div class="sidebar-footer">
         <div class="user-id">ID: <%= user.id %></div>
-        <a href="/" class="nav-link"><span>👤</span> 내 대시보드</a>
+        <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
         <a href="/auth/logout" class="logout-link">🚪 로그아웃</a>
       </div>
     </aside>
@@ -32,6 +32,14 @@
       <div class="page-header">
         <h1 class="title-md">⚙️ 자동충전/로그 설정</h1>
       </div>
+
+            <div class="card mb-6">
+              <div class="card-header">🔗 서버 링크</div>
+              <div class="flex gap-2">
+                <input type="text" id="serverLink" placeholder="https://discord.gg/xxxxx" class="input" style="flex: 1;">
+                <button onclick="saveServerLink()" class="btn btn-primary">저장</button>
+              </div>
+            </div>
 
       <div class="settings-card-grid mb-6">
         <div class="card setting-equal-card">
@@ -146,12 +154,13 @@
   </style>
 
   <script>
-    const keyToIdMap = {
+        const keyToIdMap = {
       "BANK_INFO": "bankInfo",
       "MIN_DEPOSIT": "minDeposit",
       "MANUAL_LOG_CHANNEL": "manualLogChannel",
       "PURCHASE_LOG_CHANNEL": "purchaseLogChannel",
-      "FAIL_LOG_CHANNEL": "failLogChannel"
+      "FAIL_LOG_CHANNEL": "failLogChannel",
+      "SERVER_LINK": "serverLink"
     };
 
     async function loadSettings() {
@@ -179,14 +188,20 @@
       });
     }
 
-    async function saveBankSettings() {
-      const bankInfo = document.getElementById("bankInfo").value;
-      const minDeposit = document.getElementById("minDeposit").value;
+        async function saveServerLink() {
+          const serverLink = document.getElementById("serverLink").value;
+          await saveSetting("SERVER_LINK", serverLink);
+          showToast("서버 링크가 저장되었습니다.", "success");
+        }
 
-      await saveSetting("BANK_INFO", bankInfo);
-      await saveSetting("MIN_DEPOSIT", minDeposit);
-      alert("계좌 정보가 저장되었습니다.");
-    }
+        async function saveBankSettings() {
+          const bankInfo = document.getElementById("bankInfo").value;
+          const minDeposit = document.getElementById("minDeposit").value;
+
+          await saveSetting("BANK_INFO", bankInfo);
+          await saveSetting("MIN_DEPOSIT", minDeposit);
+          showToast("계좌 정보가 저장되었습니다.", "success");
+        }
 
     async function saveChannelSettings() {
       const ids = ["MANUAL_LOG_CHANNEL", "PURCHASE_LOG_CHANNEL", "FAIL_LOG_CHANNEL"];
@@ -201,7 +216,7 @@
           await saveSetting(ids[i], vals[i]);
         }
       }
-      alert("로그 채널 설정이 저장되었습니다.");
+      showToast("로그 채널 설정이 저장되었습니다.", "success");
     }
 
     const androidGuide = `<안드로이드 SMS 웹훅 설정>

@@ -30,6 +30,7 @@ model Product {
   description  String?
   isFixed      Boolean   @default(false)
   fixedContent String?
+  discountRate Int       @default(0) // 할인률 (0~100)
   categoryId   Int
   category     Category  @relation(fields: [categoryId], references: [id])
   stocks       Stock[]
@@ -52,6 +53,7 @@ model Payment {
   points     Int
   senderName String   
   status     String   @default("PENDING")
+  expired    Boolean  @default(false) // 5분 만료 여부
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -69,9 +71,10 @@ model Receipt {
 }
 
 model RoleReward {
-  id         Int    @id @default(autoincrement())
-  spentLimit Int
-  roleId     String
+  id           Int    @id @default(autoincrement())
+  spentLimit   Int    // 기준 누적 금액
+  roleId       String // 디스코드 역할 ID
+  discountRate Int    @default(0) // 할인률 (0~100)
 }
 
 model SystemSetting {

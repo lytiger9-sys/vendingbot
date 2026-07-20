@@ -27,10 +27,10 @@
         <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>
     </aside>
-    <main class="main-content">
-      <div class="page-header">
+        <main class="main-content">
+      <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
         <h1 class="title-md">📦 제품 관리</h1>
-        <button onclick="openCategoryModal()" class="btn btn-primary">📁 카테고리 추가</button>
+        <button onclick="openCategoryModal()" class="btn btn-primary" style="margin-top: 8px;">📁 카테고리 추가</button>
       </div>
 
       <div id="categoryList">
@@ -54,9 +54,9 @@
     </div>
   </div>
 
-  <!-- 제품 추가/수정 모달 -->
+    <!-- 제품 추가/수정 모달 -->
   <div id="productModal" class="modal-overlay hidden">
-    <div class="modal">
+    <div class="modal" style="max-width: 550px;">
       <div class="modal-header" id="productModalTitle">📦 제품 추가</div>
       <input type="hidden" id="productId">
       <input type="hidden" id="productCategoryId">
@@ -69,11 +69,17 @@
         <input type="number" id="productPrice" class="input">
       </div>
       <div class="input-group">
+        <label class="input-label">할인률 (%)</label>
+        <input type="number" id="productDiscountRate" class="input" min="0" max="100" placeholder="0">
+      </div>
+      <div class="input-group">
         <label class="input-label">설명</label>
         <textarea id="productDescription" class="input" rows="3"></textarea>
       </div>
       <div class="input-group">
-        <label class="input-label"><input type="checkbox" id="productIsFixed" onchange="toggleFixed()"> 고정 재고 사용</label>
+        <label class="input-label">
+          <input type="checkbox" id="productIsFixed" onchange="toggleFixed()"> 고정 재고 사용
+        </label>
       </div>
       <div id="fixedSection" class="input-group hidden">
         <label class="input-label">고정 재고 내용</label>
@@ -102,7 +108,7 @@
     </div>
   </div>
 
-  <script>
+    <script>
     async function loadCategories() {
       const r = await fetch('/api/products');
       const categories = await r.json();
@@ -127,18 +133,20 @@
               <thead>
                 <tr>
                   <th>제품명</th>
-                  <th>가격</th>
+                  <th>정가</th>
+                  <th>할인률</th>
                   <th>재고</th>
                   <th>유형</th>
                   <th>작업</th>
                 </tr>
               </thead>
               <tbody>
-                ${cat.products.length === 0 ? '<tr><td colspan="5" class="text-center text-muted">제품이 없습니다.</td></tr>' : 
+                ${cat.products.length === 0 ? '<tr><td colspan="6" class="text-center text-muted">제품이 없습니다.</td></tr>' : 
                   cat.products.map(p => `
                   <tr class="border-t border-gray-700">
                     <td>${p.name}</td>
                     <td>${p.price.toLocaleString()}원</td>
+                    <td>${p.discountRate > 0 ? `<span class="badge badge-success">${p.discountRate}%</span>` : '-'}</td>
                     <td>${p.isFixed ? '∞' : p.stocks.length}</td>
                     <td>${p.isFixed ? '고정' : '일반'}</td>
                     <td>
@@ -157,27 +165,37 @@
       `).join('');
     }
 
-    // 카테고리 관련
-    function openCategoryModal() { document.getElementById('categoryModal').classList.remove('hidden'); }
-    function closeCategoryModal() { document.getElementById('categoryModal').classList.add('hidden'); }
+    // 카테고리 관련 - 커스텀 모달 사용
+    function openCategoryModal() { 
+      document.getElementById('categoryModal').classList.remove('hidden');
+      document.getElementById('categoryModal').classList.add('active');
+    }
+    function closeCategoryModal() { 
+      document.getElementById('categoryModal').classList.add('hidden');
+      document.getElementById('categoryModal').classList.remove('active');
+    }
     async function createCategory() {
       const name = document.getElementById('categoryName').value;
-      if (!name) return alert('이름을 입력하세요.');
+      if (!name) return showToast('이름을 입력하세요.', 'warning');
       await fetch('/api/products/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
       });
       closeCategoryModal();
+      document.getElementById('categoryName').value = '';
+      showToast('카테고리가 추가되었습니다.', 'success');
       loadCategories();
     }
     async function deleteCategory(id) {
-      if (!confirm('카테고리와 포함된 모든 제품이 삭제됩니다. 계속하시겠습니까?')) return;
-      await fetch(`/api/products/categories/${id}`, { method: 'DELETE' });
-      loadCategories();
+      showConfirm('카테고리와 포함된 모든 제품이 삭제됩니다. 계속하시겠습니까?', async () => {
+        await fetch(`/api/products/categories/${id}`, { method: 'DELETE' });
+        showToast('카테고리가 삭제되었습니다.', 'success');
+        loadCategories();
+      });
     }
 
-    // 제품 관련
+    // 제품 관련 - 커스텀 모달 사용
     function toggleFixed() {
       const isFixed = document.getElementById('productIsFixed').checked;
       document.getElementById('fixedSection').classList.toggle('hidden', !isFixed);
@@ -188,11 +206,13 @@
       document.getElementById('productCategoryId').value = catId;
       document.getElementById('productName').value = '';
       document.getElementById('productPrice').value = '';
+      document.getElementById('productDiscountRate').value = '0';
       document.getElementById('productDescription').value = '';
       document.getElementById('productIsFixed').checked = false;
       document.getElementById('productFixedContent').value = '';
       toggleFixed();
       document.getElementById('productModal').classList.remove('hidden');
+      document.getElementById('productModal').classList.add('active');
     }
     function editProduct(p) {
       document.getElementById('productModalTitle').textContent = '📦 제품 수정';
@@ -200,23 +220,36 @@
       document.getElementById('productCategoryId').value = p.categoryId;
       document.getElementById('productName').value = p.name;
       document.getElementById('productPrice').value = p.price;
+      document.getElementById('productDiscountRate').value = p.discountRate || 0;
       document.getElementById('productDescription').value = p.description || '';
       document.getElementById('productIsFixed').checked = p.isFixed;
       document.getElementById('productFixedContent').value = p.fixedContent || '';
       toggleFixed();
       document.getElementById('productModal').classList.remove('hidden');
+      document.getElementById('productModal').classList.add('active');
     }
-    function closeProductModal() { document.getElementById('productModal').classList.add('hidden'); }
+    function closeProductModal() { 
+      document.getElementById('productModal').classList.add('hidden');
+      document.getElementById('productModal').classList.remove('active');
+    }
     async function saveProduct() {
       const id = document.getElementById('productId').value;
+      const name = document.getElementById('productName').value;
+      const price = document.getElementById('productPrice').value;
+      
+      if (!name) return showToast('제품명을 입력하세요.', 'warning');
+      if (!price) return showToast('가격을 입력하세요.', 'warning');
+      
       const data = {
-        name: document.getElementById('productName').value,
-        price: document.getElementById('productPrice').value,
+        name,
+        price: parseInt(price),
+        discountRate: parseInt(document.getElementById('productDiscountRate').value) || 0,
         description: document.getElementById('productDescription').value,
         isFixed: document.getElementById('productIsFixed').checked,
         fixedContent: document.getElementById('productFixedContent').value,
-        categoryId: document.getElementById('productCategoryId').value
+        categoryId: parseInt(document.getElementById('productCategoryId').value)
       };
+      
       const method = id ? 'PUT' : 'POST';
       const url = id ? `/api/products/${id}` : '/api/products';
       await fetch(url, {
@@ -224,26 +257,34 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
+      
       closeProductModal();
+      showToast(id ? '제품이 수정되었습니다.' : '제품이 추가되었습니다.', 'success');
       loadCategories();
     }
     async function deleteProduct(id) {
-      if (!confirm('삭제하시겠습니까?')) return;
-      await fetch(`/api/products/${id}`, { method: 'DELETE' });
-      loadCategories();
+      showConfirm('이 제품을 삭제하시겠습니까?', async () => {
+        await fetch(`/api/products/${id}`, { method: 'DELETE' });
+        showToast('제품이 삭제되었습니다.', 'success');
+        loadCategories();
+      });
     }
 
-    // 재고 관련
+    // 재고 관련 - 커스텀 모달 사용
     function openStockModal(id) {
       document.getElementById('stockProductId').value = id;
       document.getElementById('stockContent').value = '';
       document.getElementById('stockModal').classList.remove('hidden');
+      document.getElementById('stockModal').classList.add('active');
     }
-    function closeStockModal() { document.getElementById('stockModal').classList.add('hidden'); }
+    function closeStockModal() { 
+      document.getElementById('stockModal').classList.add('hidden');
+      document.getElementById('stockModal').classList.remove('active');
+    }
     async function addStock() {
       const id = document.getElementById('stockProductId').value;
       const content = document.getElementById('stockContent').value;
-      if (!content) return alert('내용을 입력하세요.');
+      if (!content) return showToast('내용을 입력하세요.', 'warning');
       const stocks = content.split('\n').filter(s => s.trim());
       for (const s of stocks) {
         await fetch(`/api/products/${id}/stocks`, {
@@ -252,7 +293,7 @@
           body: JSON.stringify({ content: s })
         });
       }
-      alert(`${stocks.length}개의 재고가 추가되었습니다.`);
+      showToast(`${stocks.length}개의 재고가 추가되었습니다.`, 'success');
       closeStockModal();
       loadCategories();
     }

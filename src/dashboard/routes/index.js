@@ -132,14 +132,19 @@ router.get('/api/admin/roles', isAuthenticated, isAdmin, async (req, res) => {
   const roles = await prisma.roleReward.findMany({
     orderBy: { spentLimit: 'asc' }
   });
+  // Note: roleName would need Discord client to fetch, returning roleId for now
   res.json(roles);
 });
 
 router.post('/api/admin/roles', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    const { spentLimit, roleId } = req.body;
+    const { spentLimit, roleId, discountRate } = req.body;
     const role = await prisma.roleReward.create({
-      data: { spentLimit: parseInt(spentLimit), roleId }
+      data: {
+        spentLimit: parseInt(spentLimit),
+        roleId,
+        discountRate: parseInt(discountRate) || 0
+      }
     });
     res.json(role);
   } catch (error) {

@@ -2,15 +2,25 @@ import { prisma } from '../index.js';
 
 export async function checkAndGiveRole(userId, prisma, client) {
   try {
+    // SERVER_ID 검증 - 지정된 서버가 아니면 무시
+    const serverId = process.env.SERVER_ID;
+    if (!serverId) {
+      console.log('SERVER_ID not configured');
+      return;
+    }
+    
+    const guild = client.guilds.cache.get(serverId);
+    if (!guild) {
+      console.log('Guild not found for SERVER_ID:', serverId);
+      return;
+    }
+    
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return;
     
     const roleRewards = await prisma.roleReward.findMany({
       orderBy: { spentLimit: 'desc' }
     });
-    
-    const guild = client.guilds.cache.first();
-    if (!guild) return;
     
     const discordUser = await guild.members.fetch(userId).catch(() => null);
     if (!discordUser) return;

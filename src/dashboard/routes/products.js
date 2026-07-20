@@ -45,7 +45,7 @@ router.delete('/categories/:id', isAuthenticated, isAdmin, async (req, res) => {
 // Create product
 router.post('/', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    const { name, price, description, isFixed, fixedContent, categoryId } = req.body;
+    const { name, price, description, isFixed, fixedContent, categoryId, discountRate } = req.body;
     const product = await prisma.product.create({
       data: {
         name,
@@ -53,7 +53,8 @@ router.post('/', isAuthenticated, isAdmin, async (req, res) => {
         description,
         isFixed: isFixed === 'true' || isFixed === true,
         fixedContent: isFixed === 'true' || isFixed === true ? fixedContent : null,
-        categoryId: parseInt(categoryId)
+        categoryId: parseInt(categoryId),
+        discountRate: parseInt(discountRate) || 0
       }
     });
     res.json(product);
@@ -66,7 +67,7 @@ router.post('/', isAuthenticated, isAdmin, async (req, res) => {
 // Update product
 router.put('/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    const { name, price, description, isFixed, fixedContent, categoryId } = req.body;
+    const { name, price, description, isFixed, fixedContent, categoryId, discountRate } = req.body;
     const product = await prisma.product.update({
       where: { id: parseInt(req.params.id) },
       data: {
@@ -75,7 +76,8 @@ router.put('/:id', isAuthenticated, isAdmin, async (req, res) => {
         description,
         isFixed: isFixed === 'true' || isFixed === true,
         fixedContent: isFixed === 'true' || isFixed === true ? fixedContent : null,
-        categoryId: parseInt(categoryId)
+        categoryId: parseInt(categoryId),
+        discountRate: parseInt(discountRate) || 0
       }
     });
     res.json(product);
