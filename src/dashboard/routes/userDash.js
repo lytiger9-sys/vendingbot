@@ -4,6 +4,19 @@ import { isAuthenticated } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// 봇 정보 미들웨어
+router.use((req, res, next) => {
+  const client = req.app.locals.client;
+  if (client && client.user) {
+    res.locals.botName = client.user.username;
+    res.locals.botAvatar = client.user.displayAvatarURL({ format: 'png', size: 128 });
+  } else {
+    res.locals.botName = '자판기 봇';
+    res.locals.botAvatar = '';
+  }
+  next();
+});
+
 // User dashboard
 router.get('/', isAuthenticated, async (req, res) => {
   const isAdminUser = req.user.id === process.env.ADMIN_USER_ID;
@@ -13,13 +26,9 @@ router.get('/', isAuthenticated, async (req, res) => {
   });
 });
 
-// User purchases page
+// User purchases page - dashboard 탭으로 리다이렉트
 router.get('/purchases-page', isAuthenticated, async (req, res) => {
-  const isAdminUser = req.user.id === process.env.ADMIN_USER_ID;
-  res.render('user/purchases', {
-    user: req.user,
-    isAdmin: isAdminUser
-  });
+  res.redirect('/dashboard?tab=purchases');
 });
 
 // Get user purchase history

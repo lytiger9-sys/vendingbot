@@ -22,9 +22,16 @@
         <a href="/admin/roles" class="nav-link active"><span>🎭</span> 역할 지급</a>
       </nav>
       <div class="sidebar-footer">
-        <div class="user-id">ID: <%= user.id %></div>
-        <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
-        <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
+        <div class="user-profile">
+                  <% if (user.avatar) { %>
+                    <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png?size=128" class="user-avatar" alt="프로필">
+                  <% } else { %>
+                    <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="user-avatar" alt="프로필">
+                  <% } %>
+                  <div class="user-name"><%= user.username || '관리자' %></div>
+                </div>
+                <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
+                <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
       </div>
     </aside>
     <main class="main-content">

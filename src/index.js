@@ -70,9 +70,11 @@ passport.use(new Strategy({
   try {
     const user = await prisma.user.upsert({
       where: { id: profile.id },
-      update: {},
+      update: { username: profile.username, avatar: profile.avatar },
       create: {
         id: profile.id,
+        username: profile.username,
+        avatar: profile.avatar,
         balance: 0,
         totalSpent: 0,
         blacklisted: false

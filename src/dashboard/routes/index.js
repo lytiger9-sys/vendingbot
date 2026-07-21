@@ -4,6 +4,19 @@ import { isAuthenticated, isAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// 봇 정보 미들웨어
+router.use((req, res, next) => {
+  const client = req.app.locals.client;
+  if (client && client.user) {
+    res.locals.botName = client.user.username;
+    res.locals.botAvatar = client.user.displayAvatarURL({ format: 'png', size: 128 });
+  } else {
+    res.locals.botName = '자판기 봇';
+    res.locals.botAvatar = '';
+  }
+  next();
+});
+
 // Main dashboard route
 router.get('/', (req, res) => {
   if (!req.user) {
@@ -82,8 +95,9 @@ router.get('/admin/stats', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
     
-    const [monthlyReceipts, monthlyPayments, topProducts] = await Promise.all([
+    const [monthlyReceipts, monthlyPayments, topProducts, yearlyReceipts] = await Promise.all([
       prisma.receipt.aggregate({
         where: { purchasedAt: { gte: startOfMonth } },
         _sum: { paidAmount: true },
@@ -103,8 +117,28 @@ router.get('/admin/stats', isAuthenticated, isAdmin, async (req, res) => {
         _count: true,
         orderBy: { _count: { productId: 'desc' } },
         take: 5
+      }),
+      prisma.receipt.findMany({
+        where: { purchasedAt: { gte: yearAgo } },
+        select: { paidAmount: true, purchasedAt: true }
       })
     ]);
+    
+    // 1년치 월별 데이터 생성 (1월~12월 고정 순서)
+    const currentYear = now.getFullYear();
+    const monthlyData = {};
+    for (let i = 1; i <= 12; i++) {
+      const key = `${currentYear}-${String(i).padStart(2, '0')}`;
+      monthlyData[key] = { amount: 0, count: 0 };
+    }
+    
+    yearlyReceipts.forEach(r => {
+      const key = r.purchasedAt.toISOString().substring(0, 7);
+      if (monthlyData[key]) {
+        monthlyData[key].amount += r.paidAmount;
+        monthlyData[key].count++;
+      }
+    });
     
     const productIds = topProducts.map(p => p.productId);
     const products = await prisma.product.findMany({
@@ -119,7 +153,8 @@ router.get('/admin/stats', isAuthenticated, isAdmin, async (req, res) => {
       topProducts: topProducts.map(p => ({
         ...p,
         product: products.find(pr => pr.id === p.productId)
-      }))
+      })),
+      monthlyData
     });
   } catch (error) {
     console.error('Stats error:', error);

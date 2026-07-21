@@ -22,10 +22,17 @@
         <a href="/admin/roles" class="nav-link"><span>🎭</span> 역할 지급</a>
       </nav>
       <div class="sidebar-footer">
-        <div class="user-id">ID: <%= user.id %></div>
-        <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
-        <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
-      </div>
+              <div class="user-profile">
+                <% if (user.avatar) { %>
+                  <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png?size=128" class="user-avatar" alt="프로필">
+                <% } else { %>
+                  <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="user-avatar" alt="프로필">
+                <% } %>
+                <div class="user-name"><%= user.username || '관리자' %></div>
+              </div>
+              <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
+              <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
+            </div>
     </aside>
     <main class="main-content">
 <div class="page-header">
@@ -55,7 +62,7 @@
   </div>
 </div>
 
-<div class="card">
+<div class="card mb-6">
   <div class="card-header">🏆 인기 제품</div>
   <div class="table-container">
     <table class="table">
@@ -74,7 +81,64 @@
     </table>
   </div>
 </div>
-<script>async function loadStats() { const r = await fetch("/admin/stats"); const d = await r.json(); document.getElementById("monthlySales").textContent = (d.monthlySales || 0).toLocaleString() + "원"; document.getElementById("monthlyRecharge").textContent = (d.monthlyRecharge || 0).toLocaleString() + "원"; document.getElementById("salesCount").textContent = d.salesCount || 0; document.getElementById("rechargeCount").textContent = d.rechargeCount || 0; const tb = document.getElementById("topProducts"); if (d.topProducts && d.topProducts.length > 0) { tb.innerHTML = d.topProducts.map(p => `<tr class="border-t border-gray-700"><td class="py-3">${p.product?.name || "알 수 없음"}</td><td class="py-3">${p._count}</td><td class="py-3">${(p._sum.paidAmount || 0).toLocaleString()}원</td></tr>`).join(""); } } loadStats();
+
+<div class="card">
+  <div class="card-header">📈 월별 매출</div>
+  <canvas id="chart" height="100"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  let chart;
+
+  async function loadStats() {
+    const r = await fetch("/admin/stats");
+    const d = await r.json();
+    document.getElementById("monthlySales").textContent = (d.monthlySales || 0).toLocaleString() + "원";
+    document.getElementById("monthlyRecharge").textContent = (d.monthlyRecharge || 0).toLocaleString() + "원";
+    document.getElementById("salesCount").textContent = d.salesCount || 0;
+    document.getElementById("rechargeCount").textContent = d.rechargeCount || 0;
+    
+    const tb = document.getElementById("topProducts");
+    if (d.topProducts && d.topProducts.length > 0) {
+      tb.innerHTML = d.topProducts.map(p => `<tr class="border-t border-gray-700"><td class="py-3">${p.product?.name || "알 수 없음"}</td><td class="py-3">${p._count}</td><td class="py-3">${(p._sum.paidAmount || 0).toLocaleString()}원</td></tr>`).join("");
+    }
+    
+    // 막대그래프 렌더링 (1월~12월 고정 순서)
+        const months = Object.keys(d.monthlyData || {}).sort();
+        const monthLabels = months.map(m => {
+          const [y, mo] = m.split('-');
+          return `${y}년 ${parseInt(mo)}월`;
+        });
+    const amounts = months.map(m => (d.monthlyData[m]?.amount || 0));
+    
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("chart"), {
+      type: "bar",
+      data: {
+        labels: monthLabels,
+        datasets: [{
+          label: "매출",
+          data: amounts,
+          backgroundColor: '#8b5cf6',
+          borderRadius: 6,
+          barPercentage: 0.5,
+          categoryPercentage: 0.8
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#1a1a1a' } },
+          x: { offset: true, grid: { display: false } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+  
+  loadStats();
+</script>
 </script>
 </main>
   </div>
