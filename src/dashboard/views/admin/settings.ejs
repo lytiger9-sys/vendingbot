@@ -71,7 +71,7 @@
           
           <div class="card-inner-flow right-inputs-balance">
             <div class="input-group">
-              <input type="text" id="manualLogChannel" placeholder="수동충전 로그 채널 ID" class="input">
+              <input type="text" id="reviewLogChannel" placeholder="구매 후기 로그 채널 ID" class="input">
             </div>
             <div class="input-group">
               <input type="text" id="purchaseLogChannel" placeholder="구매 로그 채널 ID" class="input">
@@ -164,7 +164,7 @@
         const keyToIdMap = {
       "BANK_INFO": "bankInfo",
       "MIN_DEPOSIT": "minDeposit",
-      "MANUAL_LOG_CHANNEL": "manualLogChannel",
+      "REVIEW_CHANNEL_ID": "reviewLogChannel",
       "PURCHASE_LOG_CHANNEL": "purchaseLogChannel",
       "FAIL_LOG_CHANNEL": "failLogChannel",
       "SERVER_LINK": "serverLink"
@@ -211,9 +211,9 @@
         }
 
     async function saveChannelSettings() {
-      const ids = ["MANUAL_LOG_CHANNEL", "PURCHASE_LOG_CHANNEL", "FAIL_LOG_CHANNEL"];
-      const vals = [
-        document.getElementById("manualLogChannel").value,
+      const ids = ["REVIEW_CHANNEL_ID", "PURCHASE_LOG_CHANNEL", "FAIL_LOG_CHANNEL"];
+            const vals = [
+              document.getElementById("reviewLogChannel").value,
         document.getElementById("purchaseLogChannel").value,
         document.getElementById("failLogChannel").value
       ];

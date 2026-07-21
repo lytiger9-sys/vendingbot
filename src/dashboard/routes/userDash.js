@@ -71,11 +71,11 @@ router.get('/stats', isAuthenticated, async (req, res) => {
     });
     
     res.json({
-      user: req.user,
-      monthlyData,
-      totalPurchases: receipts.length,
-      totalSpent: receipts.reduce((sum, r) => sum + r.paidAmount, 0)
-    });
+          user: req.user,
+          monthlyData,
+          totalPurchases: receipts.length,
+          totalSpent: req.user.totalSpent || 0
+        });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
@@ -96,9 +96,13 @@ router.post('/reviews', isAuthenticated, async (req, res) => {
     }
     
     await prisma.receipt.update({
-      where: { id: receiptId },
-      data: { hasReview: true }
-    });
+          where: { id: receiptId },
+          data: { 
+            hasReview: true,
+            reviewRating: parseInt(rating),
+            reviewContent: content
+          }
+        });
     
     // Send review to Discord channel via webhook
     if (global.sendReviewWebhook) {

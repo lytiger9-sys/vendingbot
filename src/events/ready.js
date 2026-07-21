@@ -1,4 +1,5 @@
 import { Events, REST, Routes, EmbedBuilder } from 'discord.js';
+import { setupBackupScheduler, checkAndRestoreFromBackup } from '../utils/dbBackup.js';
 
 export default {
   name: Events.ClientReady,
@@ -6,6 +7,12 @@ export default {
   async execute(client, prisma) {
     console.log(`✅ Bot is ready as ${client.user.tag}`);
     console.log(`📢 Serving ${client.guilds.cache.size} servers`);
+
+    // DB 자동 백업 스케줄러 시작
+    setupBackupScheduler(client);
+
+    // 시작 시 DB 자동 복원 (백업 채널에서 최신 파일 확인)
+    await checkAndRestoreFromBackup(client, prisma);
 
     // 슬래시 명령어 Discord API 등록
     try {

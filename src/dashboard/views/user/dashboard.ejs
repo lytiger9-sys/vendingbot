@@ -144,6 +144,10 @@
             navPurchases.classList.add('active');
             
             // 구매 내역 탭 로직
+            if (!window.purchasesLoaded) {
+              loadPurchases();
+              window.purchasesLoaded = true;
+            }
           }
         }
 

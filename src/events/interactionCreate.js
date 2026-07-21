@@ -280,7 +280,22 @@ async function handleButton(interaction, client, prisma) {
   // 구매 확인 버튼 (고정형)
   if (customId.startsWith('purchase_confirm_')) {
     const productId = parseInt(customId.split('_')[2]);
-    await processPurchase(interaction, productId, prisma, client, 1);
+    const lockKey = `${interaction.user.id}_${productId}`;
+    
+    // 중복 클릭 방지
+    if (global.purchaseLock && global.purchaseLock.has(lockKey)) {
+      return interaction.reply({
+        content: '⏳ 이미 구매가 진행 중입니다. 잠시만 기다려주세요.',
+        ephemeral: true
+      });
+    }
+    
+    // 락 설정 (5초 후 해제)
+    if (!global.purchaseLock) global.purchaseLock = new Map();
+    global.purchaseLock.set(lockKey, true);
+    setTimeout(() => global.purchaseLock.delete(lockKey), 5000);
+    
+    await processPurchase(interaction, productId, prisma, client, 1, lockKey);
     return;
   }
 
@@ -540,6 +555,21 @@ async function handleModalSubmit(interaction, client, prisma) {
   // 구매 수량 모달
   if (customId.startsWith('modal_purchase_')) {
     const productId = parseInt(customId.split('_')[2]);
+    const lockKey = `${interaction.user.id}_${productId}`;
+    
+    // 중복 클릭 방지
+    if (global.purchaseLock && global.purchaseLock.has(lockKey)) {
+      return interaction.reply({
+        content: '⏳ 이미 구매가 진행 중입니다. 잠시만 기다려주세요.',
+        ephemeral: true
+      });
+    }
+    
+    // 락 설정 (5초 후 해제)
+    if (!global.purchaseLock) global.purchaseLock = new Map();
+    global.purchaseLock.set(lockKey, true);
+    setTimeout(() => global.purchaseLock.delete(lockKey), 5000);
+    
     const qtyInput = interaction.fields.getTextInputValue('purchase_qty');
     const qty = parseInt(qtyInput);
 
@@ -611,12 +641,12 @@ async function handleModalSubmit(interaction, client, prisma) {
     }
 
     // 구매 처리
-    await processPurchase(interaction, productId, prisma, client, qty);
+    await processPurchase(interaction, productId, prisma, client, qty, lockKey);
     return;
   }
 }
 
-async function processPurchase(interaction, productId, prisma, client, quantity = 1) {
+async function processPurchase(interaction, productId, prisma, client, quantity = 1, lockKey = null) {
   try {
     // SERVER_ID 검증
     const serverId = process.env.SERVER_ID;
@@ -715,21 +745,37 @@ async function processPurchase(interaction, productId, prisma, client, quantity 
 
     let deliveredContents = [];
 
-    if (product.isFixed) {
-      // 고정형 - 모든 콘텐츠 전송
-      deliveredContents.push(product.fixedContent || product.description || '상품 정보 없음');
-    } else {
-      // 재고형 - quantity 개만큼 랜덤 가져오기
+    // 재고형일 경우 트랜잭션으로 재고 확인 및 차감 (Race Condition 방지)
+    if (!product.isFixed) {
       const shuffled = [...product.stocks].sort(() => Math.random() - 0.5);
       const selectedStocks = shuffled.slice(0, quantity);
+      const selectedStockIds = selectedStocks.map(s => s.id);
 
-      for (const stock of selectedStocks) {
-        await prisma.stock.update({
-          where: { id: stock.id },
+      // 트랜잭션으로 재고 업데이트
+      await prisma.$transaction(async (tx) => {
+        // 재고 잠금 및 확인
+        const currentStocks = await tx.stock.findMany({
+          where: {
+            id: { in: selectedStockIds },
+            isSold: false
+          }
+        });
+
+        if (currentStocks.length < quantity) {
+          throw new Error('INSUFFICIENT_STOCK');
+        }
+
+        // 재고 sold 처리
+        await tx.stock.updateMany({
+          where: { id: { in: selectedStockIds } },
           data: { isSold: true }
         });
-        deliveredContents.push(stock.content);
-      }
+
+        deliveredContents = currentStocks.map(s => s.content);
+      });
+    } else {
+      // 고정형 - 모든 콘텐츠 전송
+      deliveredContents.push(product.fixedContent || product.description || '상품 정보 없음');
     }
 
     const deliveredContent = deliveredContents.join('\n---\n');
@@ -788,8 +834,34 @@ async function processPurchase(interaction, productId, prisma, client, quantity 
       ephemeral: true
     });
 
+    // 락 해제
+    if (lockKey && global.purchaseLock) {
+      global.purchaseLock.delete(lockKey);
+    }
+
   } catch (error) {
     console.error('Purchase error:', error);
+    
+    // 락 해제 (에러 발생 시에도)
+    if (lockKey && global.purchaseLock) {
+      global.purchaseLock.delete(lockKey);
+    }
+    
+    // 재고 부족 에러 처리
+    if (error.message === 'INSUFFICIENT_STOCK') {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **재고가 부족합니다. 다른 사용자가 먼저 구매했습니다.**')
+        );
+
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
+    }
+    
     const container = new ContainerBuilder()
       .setAccentColor(0xFF5555)
       .addTextDisplayComponents(

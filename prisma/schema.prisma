@@ -69,6 +69,8 @@ model Receipt {
   paidAmount       Int
   deliveredContent String
   hasReview        Boolean  @default(false)
+  reviewRating     Int?
+  reviewContent    String?
   purchasedAt      DateTime @default(now())
 }
 
