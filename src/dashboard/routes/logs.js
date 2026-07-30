@@ -38,13 +38,14 @@ router.get('/payments', isAuthenticated, isAdmin, async (req, res) => {
 // Get receipts (purchases)
 router.get('/receipts', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    const { search, limit = 50, offset = 0 } = req.query;
+    const { search, limit = 20, offset = 0 } = req.query;
     
     const where = {};
     if (search) {
+      const searchNum = parseInt(search);
       where.OR = [
         { userId: { contains: search } },
-        { productId: search ? { equals: parseInt(search) } : undefined }
+        ...(isNaN(searchNum) ? [] : [{ productId: searchNum }])
       ];
     }
     
@@ -59,8 +60,9 @@ router.get('/receipts', isAuthenticated, isAdmin, async (req, res) => {
       prisma.receipt.count({ where })
     ]);
     
-    res.json({ receipts, total });
+    res.json({ receipts, total, pages: Math.ceil(total / parseInt(limit)) });
   } catch (error) {
+    console.error('Receipts fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch receipts' });
   }
 });
@@ -81,7 +83,6 @@ router.put('/payments/:id', isAuthenticated, isAdmin, async (req, res) => {
       });
     }
     
-    res.json(payment);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update payment' });
   }

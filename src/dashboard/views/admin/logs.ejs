@@ -103,27 +103,51 @@
       document.getElementById("tabReceipts").className = t === "receipts" ? "btn btn-primary" : "btn btn-outline";
     }
 
-  async function loadPayments() {
-    const status = document.getElementById("paymentStatusFilter").value;
-    const search = document.getElementById("paymentSearch").value;
-    const r = await fetch(`/api/logs/payments?status=${status}&search=${search}&limit=20&offset=${paymentsPage * 20}`);
-    const d = await r.json();
-    document.getElementById("paymentsList").innerHTML = d.payments.map(p => {
-      let statusClass = "badge";
-      if (p.status === "COMPLETED") statusClass = "badge badge-success";
-      else if (p.status === "PENDING") statusClass = "badge badge-warning";
-      else if (p.status === "REJECTED") statusClass = "badge badge-danger";
+  function getStatusDisplay(status, type) {
+      // 수동충전 ( MANUAL 타입 )
+      if (type === 'MANUAL') {
+        return { text: '수동충전 성공', class: 'badge-success' };
+      }
+    
+      // 자동충전 관련
+      if (status === 'COMPLETED') {
+        return { text: '자동충전 성공', class: 'badge-success' };
+      }
+      if (status === 'EXPIRED') {
+        return { text: '자동충전 만료', class: 'badge-danger' };
+      }
+      if (status === 'PENDING') {
+        return { text: '대기중', class: 'badge-warning' };
+      }
+      if (status === 'REJECTED') {
+        return { text: '거절', class: 'badge-danger' };
+      }
+      // 기타 실패 상태
+      if (status === 'FAILED') {
+        return { text: '자동충전 실패', class: 'badge-danger' };
+      }
+    
+      return { text: status, class: 'badge' };
+    }
+
+    async function loadPayments() {
+      const status = document.getElementById("paymentStatusFilter").value;
+      const search = document.getElementById("paymentSearch").value;
+      const r = await fetch(`/api/logs/payments?status=${status}&search=${search}&limit=20&offset=${paymentsPage * 20}`);
+      const d = await r.json();
+      document.getElementById("paymentsList").innerHTML = d.payments.map(p => {
+        const statusInfo = getStatusDisplay(p.status, p.type);
       
-      return `<tr>
-        <td>${p.userId}</td>
-        <td>${p.senderName}</td>
-        <td>${p.amount.toLocaleString()}원</td>
-        <td><span class="${statusClass}">${p.status}</span></td>
-        <td class="text-muted">${new Date(p.createdAt).toLocaleString("ko-KR")}</td>
-        <td>${p.status === "PENDING" ? `<button onclick="approvePayment('${p.id}')" class="text-success hover:underline">승인</button> | <button onclick="rejectPayment('${p.id}')" class="text-danger hover:underline">거절</button>` : "-"}</td>
-      </tr>`;
-    }).join("");
-  }
+        return `<tr>
+          <td>${p.userId}</td>
+          <td>${p.senderName}</td>
+          <td>${p.amount.toLocaleString()}원</td>
+          <td><span class="badge ${statusInfo.class}">${statusInfo.text}</span></td>
+          <td class="text-muted">${new Date(p.createdAt).toLocaleString("ko-KR")}</td>
+          <td>${p.status === "PENDING" ? `<button onclick="approvePayment('${p.id}')" class="text-success hover:underline">승인</button> | <button onclick="rejectPayment('${p.id}')" class="text-danger hover:underline">거절</button>` : "-"}</td>
+        </tr>`;
+      }).join("");
+    }
 
     async function loadReceipts() {
     const search = document.getElementById("receiptSearch").value;

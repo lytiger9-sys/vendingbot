@@ -41,7 +41,7 @@ export default {
 
     const newBalance = user.balance + amount;
 
-    // 3. 차감 후 잔액이 음수가 되는지 체크
+        // 3. 차감 후 잔액이 음수가 되는지 체크
     if (newBalance < 0) {
       return interaction.reply({ 
         content: `❌ 잔액은 0원 미만으로 설정할 수 없습니다.\n(현재 잔액: \`${user.balance.toLocaleString()}원\`, 시도한 금액: \`${amount.toLocaleString()}원\`)`,
@@ -49,14 +49,29 @@ export default {
       });
     }
 
-    // 4. DB 업데이트
+    // 4. 음수(차감) / 양수(충전) 구분 처리
+    const isDeduction = amount < 0;
+
+    // 5. DB 업데이트 및 충전 로그 기록
     await prisma.user.update({
       where: { id: targetUser.id },
       data: { balance: newBalance }
     });
 
-    // 5. 음수(차감) / 양수(충전) 구분 처리
-    const isDeduction = amount < 0;
+    // 6. 충전 로그 기록 (Payment 테이블에 MANUAL 충전으로 기록)
+    if (!isDeduction) {
+      await prisma.payment.create({
+        data: {
+          userId: targetUser.id,
+          amount: Math.abs(amount),
+          points: Math.abs(amount),
+          senderName: `수동충전`,
+          status: 'COMPLETED',
+          type: 'MANUAL'
+        }
+      });
+    }
+
     const absAmount = Math.abs(amount).toLocaleString();
 
     const embed = new EmbedBuilder()

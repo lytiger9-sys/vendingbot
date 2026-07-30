@@ -55,6 +55,7 @@ model Payment {
   points     Int
   senderName String   
   status     String   @default("PENDING")
+  type       String   @default("AUTO")   // AUTO(자동충전), MANUAL(수동충전)
   expired    Boolean  @default(false) // 5분 만료 여부
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

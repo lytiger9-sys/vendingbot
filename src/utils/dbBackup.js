@@ -3,7 +3,8 @@ import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import cron from 'node-cron';
-import axios from 'axios';
+import axios from "axios";
+import { prisma } from "../index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = join(__dirname, '../../prisma/dev.db');
@@ -12,16 +13,16 @@ const BACKUP_PATH = join(__dirname, '../../prisma/dev_backup.db');
 export function setupBackupScheduler(client) {
   // 한국시간(KST) 자정(00:00)에 실행 - UTC 15:00
   cron.schedule('0 15 * * *', async () => {
-    console.log('🕛 [DB 백업] 자정 백업 시작...');
+    console.log('🔄 [DB 백업] 예정 백업 시작...');
     await performBackup(client);
   }, {
     timezone: 'Asia/Seoul'
   });
   
-  console.log('✅ DB 자동 백업 스케줄러 설정 완료 (매일 자정 KST)');
+  console.log('⏰ DB 자동 백업 스케줄러 설정 완료 (매일 자정 KST)');
 }
 
-export async function checkAndRestoreFromBackup(client, prisma) {
+export async function checkAndRestoreFromBackup(client) {
   try {
     const backupChannelId = process.env.DB_BACKUP_CHANNEL_ID;
     if (!backupChannelId) {
@@ -46,7 +47,7 @@ export async function checkAndRestoreFromBackup(client, prisma) {
     );
 
     if (!dbMessage) {
-      console.log('ℹ️ 백업 채널에서 DB 파일을 찾지 못했습니다. 기존 DB를 사용합니다.');
+      console.log('⚠️ 백업 채널에서 DB 파일을 찾지 못했습니다. 기존 DB를 사용합니다.');
       return false;
     }
 
@@ -55,13 +56,13 @@ export async function checkAndRestoreFromBackup(client, prisma) {
       return false;
     }
 
-    console.log(`📥 DB 복원 시도: ${dbAttachment.name}`);
+    console.log(`🔄 DB 복원 시도: ${dbAttachment.name}`);
 
-    // 기존 DB 백업 (보험용)
+    // 기존 DB 백업 (비상용)
     if (existsSync(DB_PATH)) {
       const emergencyBackup = `${DB_PATH}.emergency_${Date.now()}.db`;
       copyFileSync(DB_PATH, emergencyBackup);
-      console.log(`🛡️ 기존 DB 백업 완료: ${emergencyBackup}`);
+      console.log(`🚨 기존 DB 백업 완료: ${emergencyBackup}`);
     }
 
     // 새 DB 파일 다운로드 및 저장
@@ -122,7 +123,7 @@ export async function performBackup(client) {
     
     copyFileSync(DB_PATH, tempBackupPath);
 
-    // 디코드 채널로 파일 전송
+    // 디스코드 채널로 파일 전송
     const channel = await client.channels.fetch(backupChannelId).catch(() => null);
     if (!channel) {
       console.log('⚠️ 백업 채널을 찾을 수 없습니다.');
@@ -131,7 +132,7 @@ export async function performBackup(client) {
 
     const backupFile = new AttachmentBuilder(tempBackupPath);
     const embed = new EmbedBuilder()
-      .setTitle('💾 데이터베이스 백업')
+      .setTitle('📦 데이터베이스 백업')
       .setColor('#00FF00')
       .setDescription(`**${timestamp}** 기준 자동 백업입니다.`)
       .addFields(
@@ -154,7 +155,7 @@ export async function performBackup(client) {
 
 export async function restoreFromBackup(message) {
   try {
-    // 메시지에서 첨부파일 확인
+    // 메시지에서 첨부 파일 확인
     if (!message.attachments || message.attachments.size === 0) {
       return { success: false, message: '첨부된 파일이 없습니다.' };
     }
@@ -168,7 +169,7 @@ export async function restoreFromBackup(message) {
     if (existsSync(DB_PATH)) {
       const emergencyBackup = `${DB_PATH}.emergency_${Date.now()}.db`;
       copyFileSync(DB_PATH, emergencyBackup);
-      console.log(`🛡️ 기존 DB 백업 완료: ${emergencyBackup}`);
+      console.log(`🚨 기존 DB 백업 완료: ${emergencyBackup}`);
     }
 
     // 새 DB 파일 다운로드 및 저장
@@ -183,7 +184,7 @@ export async function restoreFromBackup(message) {
 
     return { 
       success: true, 
-      message: `✅ DB가 성공적으로 복원되었습니다!\n📁 파일: ${attachment.name}`
+      message: `✅ DB가 성공적으로 복원되었습니다.\n📁 파일: ${attachment.name}`
     };
 
   } catch (error) {

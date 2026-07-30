@@ -1,0 +1,260 @@
+import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, StringSelectMenuBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
+import { processPurchase } from './purchaseProcessor.js';
+
+export async function handleButton(interaction, client, prisma) {
+  const { customId } = interaction;
+
+  // SERVER_ID 검증 헬퍼 함수
+  const checkServerId = (interaction) => {
+    const serverId = process.env.SERVER_ID;
+    if (serverId && interaction.guildId !== serverId) {
+      interaction.reply({
+        content: '이 서버에서는 사용할 수 없습니다.',
+        ephemeral: true
+      });
+      return false;
+    }
+    return true;
+  };
+
+  // 입금 버튼
+  if (customId === 'btn_deposit') {
+    if (!checkServerId(interaction)) return;
+    
+    const modal = new ModalBuilder()
+      .setCustomId('modal_deposit')
+      .setTitle('💰 입금 신청');
+
+    const senderInput = new TextInputBuilder({
+      customId: 'deposit_sender',
+      label: '입금자명',
+      style: TextInputStyle.Short,
+      placeholder: '입금자명을 적어주세요',
+      required: true
+    });
+
+    const amountInput = new TextInputBuilder({
+      customId: 'deposit_amount',
+      label: '입금 금액',
+      style: TextInputStyle.Short,
+      placeholder: '숫자만 입력하세요',
+      required: true
+    });
+
+    modal.addComponents(
+      new ActionRowBuilder({ components: [senderInput] }),
+      new ActionRowBuilder({ components: [amountInput] })
+    );
+
+    await interaction.showModal(modal);
+    return;
+  }
+
+  // 상품 버튼
+  if (customId === 'btn_products') {
+    if (!checkServerId(interaction)) return;
+    
+    const categories = await prisma.category.findMany({
+      include: { products: true }
+    });
+
+    if (categories.length === 0) {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **등록된 카테고리가 없습니다.**')
+        );
+
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
+    }
+
+    const options = categories.map(cat => ({
+      label: cat.name,
+      value: cat.id.toString()
+    }));
+
+    const selectMenu = new ActionRowBuilder({
+      components: [
+        new StringSelectMenuBuilder({
+          customId: 'select_category',
+          placeholder: '카테고리를 선택하세요',
+          options: options
+        })
+      ]
+    });
+
+    const container = new ContainerBuilder()
+      .setAccentColor(0x5865F2)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('👋 **카테고리를 선택해주세요**')
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small)
+      )
+      .addActionRowComponents(selectMenu);
+
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      ephemeral: true
+    });
+    return;
+  }
+
+  // 내정보 버튼
+  if (customId === 'btn_my_info') {
+    if (!checkServerId(interaction)) return;
+    
+    const user = await prisma.user.findUnique({ where: { id: interaction.user.id } });
+    const balance = (user?.balance || 0).toLocaleString();
+    const totalSpent = (user?.totalSpent || 0).toLocaleString();
+
+    const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+    const userRoleIds = member?.roles.cache.map(r => r.id) || [];
+
+    const roleRewards = await prisma.roleReward.findMany();
+    const userRewards = roleRewards.filter(r => userRoleIds.includes(r.roleId));
+
+    let rolesText = '없음';
+    if (userRewards.length > 0 && member) {
+      const roleMentions = userRewards.map(r => {
+        const role = member.guild.roles.cache.get(r.roleId);
+        return role ? `<@&${role.id}>` : null;
+      }).filter(Boolean);
+
+      if (roleMentions.length > 0) {
+        rolesText = roleMentions.join(', ');
+      }
+    }
+
+    const unreviewedCount = await prisma.receipt.count({
+      where: {
+        userId: interaction.user.id,
+        hasReview: false
+      }
+    });
+
+    const container = new ContainerBuilder()
+      .setAccentColor(0x5865F2)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('# 정보')
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`<@${interaction.user.id}>`)
+      )
+      .addSeparatorComponents(
+        new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small)
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `잔액: ${balance}원\n` +
+          `누적 구매 금액: ${totalSpent}원\n` +
+          `누적 구매 역할: ${rolesText}\n` +
+          `적용 할인율: 없음\n` +
+          `미작성 후기: ${unreviewedCount}개`
+        )
+      );
+
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      ephemeral: true
+    });
+    return;
+  }
+
+  // 후기 버튼
+  if (customId === 'btn_review_info') {
+    const container = new ContainerBuilder()
+      .setAccentColor(0x00FF00)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('## ⭐ 후기 작성\n후기 작성 시 적립금 추가 혜택을 대시보드에서 확인하세요!')
+      )
+      .addActionRowComponents(
+        new ActionRowBuilder({
+          components: [
+            new ButtonBuilder({
+              label: '대시보드 열기',
+              style: ButtonStyle.Link,
+              url: process.env.DASHBOARD_URL || 'http://localhost:3000'
+            })
+          ]
+        })
+      );
+
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      ephemeral: true
+    });
+    return;
+  }
+
+  // 홈페이지 버튼
+  if (customId === 'btn_website') {
+    const container = new ContainerBuilder()
+      .setAccentColor(0x5865F2)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('👋 아래 버튼을 눌러 홈페이지로 이동하세요.')
+      )
+      .addActionRowComponents(
+        new ActionRowBuilder({
+          components: [
+            new ButtonBuilder({
+              label: '홈페이지로 이동',
+              style: ButtonStyle.Link,
+              url: process.env.DASHBOARD_URL || 'http://localhost:3000'
+            })
+          ]
+        })
+      );
+
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2
+    });
+    return;
+  }
+
+  // 구매 확인 버튼 (고정형)
+  if (customId.startsWith('purchase_confirm_')) {
+    const productId = parseInt(customId.split('_')[2]);
+    const lockKey = `${interaction.user.id}_${productId}`;
+    
+    if (global.purchaseLock && global.purchaseLock.has(lockKey)) {
+      return interaction.reply({
+        content: '⏳ 이미 구매가 진행 중입니다. 잠시만 기다려주세요.',
+        ephemeral: true
+      });
+    }
+    
+    if (!global.purchaseLock) global.purchaseLock = new Map();
+    global.purchaseLock.set(lockKey, true);
+    setTimeout(() => global.purchaseLock.delete(lockKey), 5000);
+    
+    await processPurchase(interaction, productId, prisma, client, 1, lockKey);
+    return;
+  }
+
+  // 구매 취소 버튼
+  if (customId === 'purchase_cancel') {
+    const container = new ContainerBuilder()
+      .setAccentColor(0x666666)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('❌ **구매가 취소되었습니다.**')
+      );
+
+    return interaction.update({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      ephemeral: true
+    });
+  }
+}

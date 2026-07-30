@@ -18,7 +18,7 @@ router.use((req, res, next) => {
 });
 
 // Main dashboard route
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   if (!req.user) {
     return res.redirect('/auth/discord');
   }
@@ -30,7 +30,32 @@ router.get('/', (req, res) => {
     return res.redirect('/admin');
   }
   
-  res.render('index', {
+  // SERVER_ID가 설정되어 있으면 해당 서버에 가입되어 있는지 확인
+  const serverId = process.env.SERVER_ID;
+  if (serverId) {
+    const client = req.app.locals.client;
+    if (client && client.isReady()) {
+      try {
+        const guild = await client.guilds.fetch(serverId);
+        const member = await guild.members.fetch(req.user.id).catch(() => null);
+        
+        if (!member) {
+          // 서버에 없는 유저 - 서버 링크 안내 (DB에서 가져옴)
+          const serverLinkSetting = await prisma.systemSetting.findUnique({
+            where: { key: 'SERVER_LINK' }
+          });
+          return res.render('server_required', {
+            user: req.user,
+            serverLink: serverLinkSetting?.value || null
+          });
+        }
+      } catch (error) {
+        console.error('서버 확인 오류:', error);
+      }
+    }
+  }
+  
+  res.render('user/dashboard', {
     user: req.user,
     isAdmin: false
   });
@@ -167,8 +192,32 @@ router.get('/api/admin/roles', isAuthenticated, isAdmin, async (req, res) => {
   const roles = await prisma.roleReward.findMany({
     orderBy: { spentLimit: 'asc' }
   });
-  // Note: roleName would need Discord client to fetch, returning roleId for now
-  res.json(roles);
+  
+  // Discord 클라이언트로 역할 이름 가져오기
+  const client = req.app.locals.client;
+  const serverId = process.env.SERVER_ID;
+  
+  if (client && client.isReady() && serverId) {
+    try {
+      const guild = await client.guilds.fetch(serverId);
+      const rolesWithNames = await Promise.all(roles.map(async (role) => {
+        try {
+          const discordRole = await guild.roles.fetch(role.roleId);
+          return {
+            ...role,
+            roleName: discordRole ? discordRole.name : '알 수 없음'
+          };
+        } catch {
+          return { ...role, roleName: '역할 없음' };
+        }
+      }));
+      return res.json(rolesWithNames);
+    } catch (e) {
+      console.error('역할 이름 가져오기 실패:', e);
+    }
+  }
+  
+  res.json(roles.map(r => ({ ...r, roleName: null })));
 });
 
 router.post('/api/admin/roles', isAuthenticated, isAdmin, async (req, res) => {
