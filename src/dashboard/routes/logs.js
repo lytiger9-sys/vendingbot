@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../../index.js';
 import { isAuthenticated, isAdmin } from '../middleware/auth.js';
+import { upsertChargeLog } from '../../utils/paymentLogger.js';
 
 const router = express.Router();
 
@@ -82,7 +83,11 @@ router.put('/payments/:id', isAuthenticated, isAdmin, async (req, res) => {
         data: { balance: { increment: payment.points } }
       });
     }
-    
+
+    const client = req.app.locals.client;
+    await upsertChargeLog(client, prisma, payment);
+
+    res.json({ success: true, payment });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update payment' });
   }

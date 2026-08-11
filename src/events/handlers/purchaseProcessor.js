@@ -1,5 +1,6 @@
 import { ContainerBuilder, TextDisplayBuilder, MessageFlags, TextDisplayBuilder as TextDisplay } from 'discord.js';
 import { checkAndGiveRole } from '../../utils/roleManager.js';
+import { sendPaymentLog } from '../../utils/paymentLogger.js';
 
 export async function processPurchase(interaction, productId, prisma, client, quantity = 1, lockKey = null) {
   try {
@@ -171,6 +172,18 @@ export async function processPurchase(interaction, productId, prisma, client, qu
 
     // 역할 확인 및 부여
     await checkAndGiveRole(interaction.user.id, prisma, client);
+
+    // 구매 로그 채널에 기록
+    await sendPaymentLog(client, prisma, 'PURCHASE_LOG_CHANNEL', {
+      title: '🛒 구매 완료',
+      color: 0x2ECC71,
+      fields: [
+        { name: '유저', value: `<@${interaction.user.id}>`, inline: true },
+        { name: '상품', value: product.name, inline: true },
+        { name: '수량', value: `${quantity}개`, inline: true },
+        { name: '결제금액', value: `${totalPrice.toLocaleString()}원`, inline: true }
+      ]
+    });
 
     // 구매 완료 응답
     const successContainer = new ContainerBuilder()

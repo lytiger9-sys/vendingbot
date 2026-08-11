@@ -1,5 +1,6 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
 import { processPurchase } from './purchaseProcessor.js';
+import { upsertChargeLog } from '../../utils/paymentLogger.js';
 
 export async function handleModalSubmit(interaction, client, prisma) {
   const { customId } = interaction;
@@ -62,7 +63,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
     }
 
     // 대기 중인 결제 생성
-    await prisma.payment.create({
+    const payment = await prisma.payment.create({
       data: {
         userId: interaction.user.id,
         amount,
@@ -71,6 +72,9 @@ export async function handleModalSubmit(interaction, client, prisma) {
         status: 'PENDING'
       }
     });
+
+    // 충전 로그 채널에 대기중 상태로 최초 기록
+    await upsertChargeLog(client, prisma, payment);
 
     // 계좌 정보 가져오기
     const bankSetting = await prisma.systemSetting.findUnique({

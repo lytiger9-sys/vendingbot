@@ -1,8 +1,38 @@
-import { prisma } from '../index.js';
+import { prisma, client } from '../index.js';
 import { EmbedBuilder } from 'discord.js';
+import { upsertChargeLog } from './paymentLogger.js';
 
 const processingLock = new Map();
 const LOCK_TIMEOUT = 5000;
+
+// 정규식 특수문자 이스케이프
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * 은행 입금 문자는 보통 입금자명 가운데 글자를 마스킹해서 보낸다 (예: 홍길동 -> 홍*동, 홍○동).
+ * 정확히 일치하는 이름이 문자 내용에 없으면, "첫 글자 + 마스킹기호(1개 이상) + 마지막 글자"
+ * 패턴으로 한 번 더 검사한다.
+ * ⚠️ 은행/통신사마다 마스킹 문자가 다를 수 있어 실제 문자 샘플로 확인이 필요하다.
+ */
+function contentMatchesSenderName(content, senderName) {
+  const name = senderName.trim();
+  if (!name) return false;
+
+  // 1차: 정확히 일치 (마스킹 없이 오는 경우, 혹은 이름을 그대로 입력한 경우)
+  if (content.includes(name)) return true;
+
+  // 2차: 마스킹 패턴 매칭 (2글자 이상 이름만 대상)
+  if (name.length >= 2) {
+    const first = name[0];
+    const last = name[name.length - 1];
+    const maskPattern = `${escapeRegex(first)}[\\*○Ο0oOxX×]+${escapeRegex(last)}`;
+    if (new RegExp(maskPattern).test(content)) return true;
+  }
+
+  return false;
+}
 
 export async function processPayment(data) {
   const content = data.content || data.text || '';
@@ -42,12 +72,9 @@ export async function processPayment(data) {
   let matchedPayment = null;
 
   for (const payment of pendingPaymentsForAmount) {
-    const trimmedSender = payment.senderName.trim();
-    
-    // 알림 메시지 텍스트 전체에 신청자 이름이 단어로 포함되어 있는지 검사
-    if (content.includes(trimmedSender)) {
+    if (contentMatchesSenderName(content, payment.senderName)) {
       matchedPayment = payment;
-      break; 
+      break;
     }
   }
 
@@ -63,11 +90,12 @@ export async function processPayment(data) {
   const diffMinutes = (now - createdAt) / 1000 / 60;
   
   if (diffMinutes > 5) {
-    await prisma.payment.update({
+    const expiredPayment = await prisma.payment.update({
       where: { id: matchedPayment.id },
       data: { status: 'EXPIRED', expired: true }
     });
     console.log(`❌ [자동 충전 실패] ${matchedPayment.senderName} 님의 신청 건이 5분 초과로 만료됨.`);
+    await upsertChargeLog(client, prisma, expiredPayment);
     return;
   }
 
@@ -94,7 +122,7 @@ export async function processPayment(data) {
     }
 
     // 트랜잭션 처리 (상태 변경 및 유저 잔액 추가)
-    await prisma.$transaction([
+    const [updatedPayment] = await prisma.$transaction([
       prisma.payment.update({
         where: { id: payment.id },
         data: { status: 'COMPLETED' }
@@ -106,6 +134,7 @@ export async function processPayment(data) {
     ]);
 
     console.log(`✅ 자동 충전 완료: ${payment.senderName} 님 (+${payment.points.toLocaleString()}P)`);
+    await upsertChargeLog(client, prisma, updatedPayment);
 
     // 유저 DM 발송
     if (global.sendUserDM) {

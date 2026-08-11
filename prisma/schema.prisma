@@ -57,6 +57,8 @@ model Payment {
   status     String   @default("PENDING")
   type       String   @default("AUTO")   // AUTO(자동충전), MANUAL(수동충전)
   expired    Boolean  @default(false) // 5분 만료 여부
+  logChannelId String?
+  logMessageId String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }

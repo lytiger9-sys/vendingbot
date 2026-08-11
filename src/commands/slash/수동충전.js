@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import { upsertChargeLog } from '../../utils/paymentLogger.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -60,16 +61,18 @@ export default {
 
     // 6. 충전 로그 기록 (Payment 테이블에 MANUAL 충전으로 기록)
     if (!isDeduction) {
-      await prisma.payment.create({
+      const manualPayment = await prisma.payment.create({
         data: {
           userId: targetUser.id,
           amount: Math.abs(amount),
           points: Math.abs(amount),
-          senderName: `수동충전`,
+          senderName: `수동충전 (${interaction.user.tag})`,
           status: 'COMPLETED',
           type: 'MANUAL'
         }
       });
+
+      await upsertChargeLog(client, prisma, manualPayment);
     }
 
     const absAmount = Math.abs(amount).toLocaleString();

@@ -101,9 +101,22 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/logs', logsRouter);
 app.use('/dashboard', userDashRouter);
 
-// SMS Webhook endpoint
+// SMS Webhook endpoint (시크릿 키 인증 필요)
 app.post('/webhook/sms', async (req, res) => {
   try {
+    const providedSecret = req.get('x-webhook-secret') || req.query.secret;
+    const expectedSecret = process.env.WEBHOOK_SECRET;
+
+    if (!expectedSecret) {
+      console.error('WEBHOOK_SECRET이 .env에 설정되어 있지 않습니다. 요청을 거부합니다.');
+      return res.status(500).send('Server misconfigured');
+    }
+
+    if (!providedSecret || providedSecret !== expectedSecret) {
+      console.warn('SMS 웹훅 인증 실패 (잘못된 시크릿 키):', req.ip);
+      return res.status(401).send('Unauthorized');
+    }
+
     await processPayment(req.body);
     res.status(200).send('OK');
   } catch (error) {

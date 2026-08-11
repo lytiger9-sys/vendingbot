@@ -101,6 +101,12 @@
       document.getElementById("receiptsTab").style.display = t === "receipts" ? "block" : "none";
       document.getElementById("tabPayments").className = t === "payments" ? "btn btn-primary" : "btn btn-outline";
       document.getElementById("tabReceipts").className = t === "receipts" ? "btn btn-primary" : "btn btn-outline";
+
+      if (t === "payments") {
+        loadPayments();
+      } else {
+        loadReceipts();
+      }
     }
 
   function getStatusDisplay(status, type) {
