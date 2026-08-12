@@ -1,4 +1,4 @@
-import { ContainerBuilder, TextDisplayBuilder, MessageFlags, TextDisplayBuilder as TextDisplay } from 'discord.js';
+import { ContainerBuilder, TextDisplayBuilder, MessageFlags, TextDisplayBuilder as TextDisplay, SeparatorBuilder, SeparatorSpacingSize } from 'discord.js';
 import { checkAndGiveRole } from '../../utils/roleManager.js';
 import { sendPaymentLog } from '../../utils/paymentLogger.js';
 
@@ -18,7 +18,7 @@ export async function processPurchase(interaction, productId, prisma, client, qu
         ephemeral: true
       });
     }
-    
+
     const user = await prisma.user.findUnique({ where: { id: interaction.user.id } });
 
     if (!user) {
@@ -155,12 +155,36 @@ export async function processPurchase(interaction, productId, prisma, client, qu
 
     // DM 전송
     try {
-      const dmContent = `✅ 구매 완료: ${product.name}\n\n구매가 완료되었습니다!\n\n**상품명:** ${product.name}\n**구매수량:** ${quantity}개\n**결제금액:** ${totalPrice.toLocaleString()}원\n\n**🎁 전달된 상품:**\n${deliveredContent}`;
+      const purchaseDate = new Date().toLocaleString('ko-KR', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit'
+      });
 
-      const dmEmbed = new TextDisplay().setContent(dmContent);
+      const dmTitleContent = `## ✅ 구매 완료: ${product.name}\n\n구매가 완료되었습니다!`;
+      const dmInfoContent = `**상품명:** ${product.name}\n**구매수량:** ${quantity}개\n**결제금액:** ${totalPrice.toLocaleString()}원\n**구매일시:** ${purchaseDate}`;
+      const dmDeliveredContent = `**🎁 전달된 상품:**\n${deliveredContent}`;
+
       const dmContainer = new ContainerBuilder()
         .setAccentColor(0x00FF00)
-        .addTextDisplayComponents(dmEmbed);
+        .addTextDisplayComponents(
+          new TextDisplay().setContent(dmTitleContent)
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplay().setContent(dmInfoContent)
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder()
+            .setDivider(true)
+            .setSpacing(SeparatorSpacingSize.Small)
+        )
+        .addTextDisplayComponents(
+          new TextDisplay().setContent(dmDeliveredContent)
+        );
 
       await interaction.user.send({
         components: [dmContainer],
@@ -205,11 +229,11 @@ export async function processPurchase(interaction, productId, prisma, client, qu
 
   } catch (error) {
     console.error('Purchase error:', error);
-    
+
     if (lockKey && global.purchaseLock) {
       global.purchaseLock.delete(lockKey);
     }
-    
+
     if (error.message === 'INSUFFICIENT_STOCK') {
       const container = new ContainerBuilder()
         .setAccentColor(0xFF5555)
@@ -223,7 +247,7 @@ export async function processPurchase(interaction, productId, prisma, client, qu
         ephemeral: true
       });
     }
-    
+
     const container = new ContainerBuilder()
       .setAccentColor(0xFF5555)
       .addTextDisplayComponents(

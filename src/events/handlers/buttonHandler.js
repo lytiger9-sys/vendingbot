@@ -210,7 +210,7 @@ export async function handleButton(interaction, client, prisma) {
             new ButtonBuilder({
               label: '홈페이지로 이동',
               style: ButtonStyle.Link,
-              url: process.env.DASHBOARD_URL || 'http://localhost:3000'
+              url: process.env.DASHBOARD_URL || 'https://killjoyshop-27gt.onrender.com/admin'
             })
           ]
         })
