@@ -38,7 +38,7 @@ app.set('views', './src/dashboard/views');
 // Static files
 app.use('/css', express.static('./src/dashboard/public/css'));
 app.use('/js', express.static('./src/dashboard/public/js'));
-
+app.use(express.static('./src/dashboard/public'));
 // Session
 app.use(session({
   secret: process.env.SESSION_SECRET || 'secret',
