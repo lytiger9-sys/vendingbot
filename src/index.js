@@ -1,7 +1,44 @@
-console.log("=== 환경변수 로드 테스트 ===");
-console.log("SESSION_SECRET:", process.env.SESSION_SECRET ? "존재함" : "없음(undefined)");
-console.log("BOT_TOKEN:", process.env.DISCORD_BOT_TOKEN ? "존재함" : "없음(undefined)");
-console.log("===========================");
+const envKeys = [
+  'ADMIN_USER_ID',
+  'CLIENT_ID',
+  'CLIENT_SECRET',
+  'DASHBOARD_URL',
+  'DB_Backup_Channel_ID',
+  'DISCORD_BOT_TOKEN',
+  'REDIRECT_URI',
+  'SERVER_ID',
+  'SESSION_SECRET',
+  'WEBHOOK_SECRET'
+];
+
+// 2. 환경변수 체크 및 출력
+console.log('\n========================================');
+console.log('🔍 [환경변수 로드 상태 전체 점검]');
+console.log('========================================');
+
+let missingCount = 0;
+
+envKeys.forEach((key) => {
+  const value = process.env[key];
+  if (value && value.trim() !== '') {
+    // 보안을 위해 앞 3자리만 출력하고 나머지는 마스킹 처리
+    const maskedValue = value.length > 5 
+      ? `${value.substring(0, 3)}***` 
+      : '***';
+    console.log(`✅ ${key.padEnd(22)} : 로드 완료 (${maskedValue})`);
+  } else {
+    console.log(`❌ ${key.padEnd(22)} : undefined (없음)`);
+    missingCount++;
+  }
+});
+
+console.log('========================================');
+if (missingCount === 0) {
+  console.log('🎉 모든 환경변수가 정상적으로 로드되었습니다!');
+} else {
+  console.log(`⚠️ 총 ${missingCount}개의 환경변수를 찾을 수 없습니다. Render 대시보드를 확인하세요.`);
+}
+console.log('========================================\n');
 
 import 'dotenv/config';
 import { Client, GatewayIntentBits, Partials, Collection } from 'discord.js';
