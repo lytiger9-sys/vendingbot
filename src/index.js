@@ -1,3 +1,8 @@
+console.log("=== 환경변수 로드 테스트 ===");
+console.log("SESSION_SECRET:", process.env.SESSION_SECRET ? "존재함" : "없음(undefined)");
+console.log("BOT_TOKEN:", process.env.DISCORD_BOT_TOKEN ? "존재함" : "없음(undefined)");
+console.log("===========================");
+
 import 'dotenv/config';
 import { Client, GatewayIntentBits, Partials, Collection } from 'discord.js';
 import { PrismaClient } from '@prisma/client';
