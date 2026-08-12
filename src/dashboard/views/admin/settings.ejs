@@ -77,18 +77,15 @@
               <input type="text" id="purchaseLogChannel" placeholder="구매 로그 채널 ID" class="input">
             </div>
             <div class="input-group">
-              <input type="text" id="chargeLogChannel" placeholder="충전 로그 채널 ID (자동/수동 공용)" class="input">
-            </div>
-            <div class="input-group">
-              <input type="text" id="failLogChannel" placeholder="충전 실패 로그 채널 ID" class="input">
-            </div>
-          </div>
-          
-          <div class="card-action-row">
-            <button onclick="saveChannelSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
-          </div>
-        </div>
-      </div>
+                          <input type="text" id="chargeLogChannel" placeholder="충전 로그 채널 ID (자동/수동 공용)" class="input">
+                        </div>
+                      </div>
+
+                      <div class="card-action-row">
+                        <button onclick="saveChannelSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
+                      </div>
+                    </div>
+                  </div>
 
       <div class="card">
         <div class="card-header">📱 SMS 자동충전 가이드</div>
@@ -129,13 +126,14 @@
     }
 
     .card-inner-flow.left-inputs-balance {
-      justify-content: flex-start; 
+      justify-content: space-around;
+      padding: 6px 0;
     }
 
     .card-inner-flow.right-inputs-balance {
+      gap: 12px;
       justify-content: flex-start;
     }
-
     .setting-equal-card .input-group {
       margin-bottom: 0 !important;
     }
