@@ -56,6 +56,7 @@ export async function handleButton(interaction, client, prisma) {
     if (!checkServerId(interaction)) return;
     
     const categories = await prisma.category.findMany({
+      orderBy: { id: 'asc' },
       include: { products: true }
     });
 
@@ -235,7 +236,7 @@ export async function handleButton(interaction, client, prisma) {
 
   // 구매 확인 버튼 (고정형)
   if (customId.startsWith('purchase_confirm_')) {
-    const productId = parseInt(customId.split('_')[2]);
+    const productId = customId.split('_')[2];
     const lockKey = `${interaction.user.id}_${productId}`;
     
     if (global.purchaseLock && global.purchaseLock.has(lockKey)) {

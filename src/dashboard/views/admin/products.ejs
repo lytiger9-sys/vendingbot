@@ -132,8 +132,8 @@
           <div class="card-header flex justify-between align-center">
             <span>📁 ${cat.name}</span>
             <div class="flex gap-2">
-              <button onclick="openProductModal(${cat.id})" class="btn btn-sm btn-primary">➕ 제품 추가</button>
-              <button onclick="deleteCategory(${cat.id})" class="btn btn-sm btn-danger">삭제</button>
+              <button onclick='openProductModal(${JSON.stringify(cat.id)})' class="btn btn-sm btn-primary">➕ 제품 추가</button>
+              <button onclick='deleteCategory(${JSON.stringify(cat.id)})' class="btn btn-sm btn-danger">삭제</button>
             </div>
           </div>
           <div class="table-container">
@@ -160,8 +160,8 @@
                     <td>
                       <div class="flex gap-2">
                         <button onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&apos;")})' class="text-primary hover:underline">수정</button>
-                        ${!p.isFixed ? `<button onclick="openStockModal(${p.id})" class="text-success hover:underline">재고</button>` : ''}
-                        <button onclick="deleteProduct(${p.id})" class="text-danger hover:underline">삭제</button>
+                        ${!p.isFixed ? `<button onclick='openStockModal(${JSON.stringify(p.id)})' class="text-success hover:underline">재고</button>` : ''}
+                        <button onclick='deleteProduct(${JSON.stringify(p.id)})' class="text-danger hover:underline">삭제</button>
                       </div>
                     </td>
                   </tr>
@@ -255,7 +255,7 @@
         description: document.getElementById('productDescription').value,
         isFixed: document.getElementById('productIsFixed').checked,
         fixedContent: document.getElementById('productFixedContent').value,
-        categoryId: parseInt(document.getElementById('productCategoryId').value)
+        categoryId: document.getElementById('productCategoryId').value
       };
       
       const method = id ? 'PUT' : 'POST';

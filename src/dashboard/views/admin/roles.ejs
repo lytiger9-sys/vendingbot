@@ -99,7 +99,7 @@
                 <td class="py-3">${r.roleName || '-'}</td>
                 <td class="py-3">${r.discountRate > 0 ? `<span class="badge badge-success">${r.discountRate}%</span>` : '-'}</td>
                 <td class="py-3">
-                  <button onclick="deleteRole(${r.id})" class="text-danger hover:underline">삭제</button>
+                  <button onclick='deleteRole(${JSON.stringify(r.id)})' class="text-danger hover:underline">삭제</button>
                 </td>
               </tr>
             `).join("");

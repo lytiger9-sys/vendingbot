@@ -99,7 +99,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
 
   // 구매 수량 모달
   if (customId.startsWith('modal_purchase_')) {
-    const productId = parseInt(customId.split('_')[2]);
+    const productId = customId.split('_')[2];
     const lockKey = `${interaction.user.id}_${productId}`;
     
     // 중복 클릭 방지

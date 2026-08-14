@@ -238,7 +238,7 @@ router.post('/api/admin/roles', isAuthenticated, isAdmin, async (req, res) => {
 
 router.delete('/api/admin/roles/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    await prisma.roleReward.delete({ where: { id: parseInt(req.params.id) } });
+    await prisma.roleReward.delete({ where: { id: req.params.id } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete role reward' });

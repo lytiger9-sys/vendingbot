@@ -10,7 +10,7 @@ export default {
     console.log(`📢 Serving ${client.guilds.cache.size} servers`);
 
     // DB 자동 백업 스케줄러 시작
-    setupBackupScheduler(client);
+    setupBackupScheduler(client, prisma);
 
     // 시작 시 DB 자동 복원 (백업 채널에서 최신 파일 확인)
     await checkAndRestoreFromBackup(client, prisma);

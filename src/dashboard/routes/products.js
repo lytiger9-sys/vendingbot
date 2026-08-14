@@ -9,6 +9,7 @@ router.get('/', async (req, res) => {
   const categories = await prisma.category.findMany({
     include: {
       products: {
+        orderBy: { id: 'asc' },
         include: {
           stocks: { where: { isSold: false } }
         }
@@ -35,7 +36,7 @@ router.post('/categories', isAuthenticated, isAdmin, async (req, res) => {
 // Delete category
 router.delete('/categories/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    await prisma.category.delete({ where: { id: parseInt(req.params.id) } });
+    await prisma.category.delete({ where: { id: req.params.id } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete category' });
@@ -53,7 +54,7 @@ router.post('/', isAuthenticated, isAdmin, async (req, res) => {
         description,
         isFixed: isFixed === 'true' || isFixed === true,
         fixedContent: isFixed === 'true' || isFixed === true ? fixedContent : null,
-        categoryId: parseInt(categoryId),
+        categoryId,
         discountRate: parseInt(discountRate) || 0
       }
     });
@@ -69,14 +70,14 @@ router.put('/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const { name, price, description, isFixed, fixedContent, categoryId, discountRate } = req.body;
     const product = await prisma.product.update({
-      where: { id: parseInt(req.params.id) },
+      where: { id: req.params.id },
       data: {
         name,
         price: parseInt(price),
         description,
         isFixed: isFixed === 'true' || isFixed === true,
         fixedContent: isFixed === 'true' || isFixed === true ? fixedContent : null,
-        categoryId: parseInt(categoryId),
+        categoryId,
         discountRate: parseInt(discountRate) || 0
       }
     });
@@ -89,7 +90,7 @@ router.put('/:id', isAuthenticated, isAdmin, async (req, res) => {
 // Delete product
 router.delete('/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    await prisma.product.delete({ where: { id: parseInt(req.params.id) } });
+    await prisma.product.delete({ where: { id: req.params.id } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete product' });
@@ -102,7 +103,7 @@ router.post('/:id/stocks', isAuthenticated, isAdmin, async (req, res) => {
     const { content } = req.body;
     const stock = await prisma.stock.create({
       data: {
-        productId: parseInt(req.params.id),
+        productId: req.params.id,
         content
       }
     });
@@ -115,7 +116,7 @@ router.post('/:id/stocks', isAuthenticated, isAdmin, async (req, res) => {
 // Delete stock
 router.delete('/stocks/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    await prisma.stock.delete({ where: { id: parseInt(req.params.id) } });
+    await prisma.stock.delete({ where: { id: req.params.id } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete stock' });

@@ -5,10 +5,11 @@ export async function handleSelectMenu(interaction, client, prisma) {
 
   // 카테고리 선택
   if (customId === 'select_category') {
-    const categoryId = parseInt(values[0]);
+    const categoryId = values[0];
     const products = await prisma.product.findMany({
       where: { categoryId },
-      include: { category: true }
+      include: { category: true },
+      orderBy: { id: 'asc' }
     });
 
     if (products.length === 0) {
@@ -58,7 +59,7 @@ export async function handleSelectMenu(interaction, client, prisma) {
 
   // 상품 선택
   if (customId === 'select_product') {
-    const productId = parseInt(values[0]);
+    const productId = values[0];
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: { category: true, stocks: { where: { isSold: false } } }

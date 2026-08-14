@@ -9,13 +9,16 @@ const router = express.Router();
 router.get('/payments', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const { status, search, limit = 50, offset = 0 } = req.query;
+    const parsedLimit = Number.parseInt(limit, 10) || 50;
+    const parsedOffset = Number.parseInt(offset, 10) || 0;
     
     const where = {};
     if (status) where.status = status;
     if (search) {
       where.OR = [
         { senderName: { contains: search } },
-        { userId: { contains: search } }
+        { userId: { contains: search } },
+        { user: { username: { contains: search } } }
       ];
     }
     
@@ -24,8 +27,8 @@ router.get('/payments', isAuthenticated, isAdmin, async (req, res) => {
         where,
         include: { user: true },
         orderBy: { createdAt: 'desc' },
-        take: parseInt(limit),
-        skip: parseInt(offset)
+        take: parsedLimit,
+        skip: parsedOffset
       }),
       prisma.payment.count({ where })
     ]);
@@ -40,13 +43,15 @@ router.get('/payments', isAuthenticated, isAdmin, async (req, res) => {
 router.get('/receipts', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const { search, limit = 20, offset = 0 } = req.query;
+    const parsedLimit = Number.parseInt(limit, 10) || 20;
+    const parsedOffset = Number.parseInt(offset, 10) || 0;
     
     const where = {};
     if (search) {
-      const searchNum = parseInt(search);
       where.OR = [
         { userId: { contains: search } },
-        ...(isNaN(searchNum) ? [] : [{ productId: searchNum }])
+        { user: { username: { contains: search } } },
+        { product: { name: { contains: search } } }
       ];
     }
     
@@ -55,13 +60,13 @@ router.get('/receipts', isAuthenticated, isAdmin, async (req, res) => {
         where,
         include: { user: true, product: true },
         orderBy: { purchasedAt: 'desc' },
-        take: parseInt(limit),
-        skip: parseInt(offset)
+        take: parsedLimit,
+        skip: parsedOffset
       }),
       prisma.receipt.count({ where })
     ]);
     
-    res.json({ receipts, total, pages: Math.ceil(total / parseInt(limit)) });
+    res.json({ receipts, total, pages: Math.ceil(total / parsedLimit) });
   } catch (error) {
     console.error('Receipts fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch receipts' });
