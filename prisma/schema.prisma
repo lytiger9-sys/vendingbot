@@ -97,3 +97,13 @@ model EmbedSetting {
   imageUrl     String?
   footerText   String?
 }
+
+model Session {
+  sid       String   @id
+  data      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+}

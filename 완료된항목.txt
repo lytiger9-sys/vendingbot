@@ -44,6 +44,10 @@
 
 22. (원래 40번) 유저용 웹사이트에서 구매 내역의 후기쓰기 버튼이 css 스타일이 적용되어있지 않음
 
+23. (원래 42번, 44번) Prisma 세션 저장소를 적용하여 Render의 MemoryStore 경고 및 세션 메모리 문제 해결
+
+24. (원래 43번) 버튼핸들러.js랑 디비백업.js에서 db백업채널, 대시보드 링크를 받아읽지 못하는 버그를 환경변수/기본 URL 통합으로 수정
+
 추가 반영 사항:
 - Prisma 스키마에 discountRate 필드 추가
 - 공용 모달 유틸리티(showToast, showConfirm, showPrompt) 추가

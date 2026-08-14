@@ -1,5 +1,6 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, StringSelectMenuBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, ButtonBuilder, ButtonStyle, MessageFlags } from 'discord.js';
 import { processPurchase } from './purchaseProcessor.js';
+import { getDashboardUrl } from '../../utils/runtimeConfig.js';
 
 export async function handleButton(interaction, client, prisma) {
   const { customId } = interaction;
@@ -172,6 +173,8 @@ export async function handleButton(interaction, client, prisma) {
 
   // 후기 버튼
   if (customId === 'btn_review_info') {
+    const dashboardUrl = getDashboardUrl();
+
     const container = new ContainerBuilder()
       .setAccentColor(0x00FF00)
       .addTextDisplayComponents(
@@ -183,7 +186,7 @@ export async function handleButton(interaction, client, prisma) {
             new ButtonBuilder({
               label: '대시보드 열기',
               style: ButtonStyle.Link,
-              url: process.env.DASHBOARD_URL || 'http://localhost:3000'
+              url: dashboardUrl
             })
           ]
         })
@@ -199,6 +202,8 @@ export async function handleButton(interaction, client, prisma) {
 
   // 홈페이지 버튼
   if (customId === 'btn_website') {
+    const dashboardUrl = getDashboardUrl();
+
     const container = new ContainerBuilder()
       .setAccentColor(0x5865F2)
       .addTextDisplayComponents(
@@ -210,7 +215,7 @@ export async function handleButton(interaction, client, prisma) {
             new ButtonBuilder({
               label: '홈페이지로 이동',
               style: ButtonStyle.Link,
-              url: process.env.DASHBOARD_URL || 'https://killjoyshop-27gt.onrender.com/admin'
+              url: dashboardUrl
             })
           ]
         })

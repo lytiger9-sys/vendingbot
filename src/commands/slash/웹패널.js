@@ -8,6 +8,7 @@
   TextDisplayBuilder, 
   SeparatorBuilder 
 } from "discord.js";
+import { getDashboardUrl } from '../../utils/runtimeConfig.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -17,7 +18,7 @@ export default {
     // 1. 에피메럴(비공개) 응답 대기 시작
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     
-    const dashboardUrl = process.env.DASHBOARD_URL || "http://localhost:3000";
+    const dashboardUrl = getDashboardUrl();
     const rawColor = parseInt("5865F2", 16);
 
     // [Components V2 빌더 구조]

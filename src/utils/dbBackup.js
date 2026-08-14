@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import cron from 'node-cron';
 import axios from "axios";
 import { prisma } from "../index.js";
+import { getDbBackupChannelId } from './runtimeConfig.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = join(__dirname, '../../prisma/dev.db');
@@ -24,9 +25,9 @@ export function setupBackupScheduler(client) {
 
 export async function checkAndRestoreFromBackup(client) {
   try {
-    const backupChannelId = process.env.DB_BACKUP_CHANNEL_ID;
+    const backupChannelId = getDbBackupChannelId();
     if (!backupChannelId) {
-      console.log('⚠️ DB 백업 채널이 설정되지 않았습니다.');
+      console.log('⚠️ DB 백업 채널이 설정되지 않았습니다. (DB_BACKUP_CHANNEL_ID / DB_Backup_Channel_ID)');
       return false;
     }
 
@@ -104,9 +105,9 @@ export async function checkAndRestoreFromBackup(client) {
 
 export async function performBackup(client) {
   try {
-    const backupChannelId = process.env.DB_BACKUP_CHANNEL_ID;
+    const backupChannelId = getDbBackupChannelId();
     if (!backupChannelId) {
-      console.log('⚠️ DB 백업 채널이 설정되지 않았습니다.');
+      console.log('⚠️ DB 백업 채널이 설정되지 않았습니다. (DB_BACKUP_CHANNEL_ID / DB_Backup_Channel_ID)');
       return;
     }
 
