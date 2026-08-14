@@ -118,7 +118,7 @@ app.post('/webhook/sms', async (req, res) => {
       return res.status(401).send('Unauthorized');
     }
 
-    await processPayment(req.body);
+    await processPayment(req.body, { prisma, client });
     res.status(200).send('OK');
   } catch (error) {
     console.error('SMS webhook error:', error);

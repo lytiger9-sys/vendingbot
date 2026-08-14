@@ -119,6 +119,10 @@ export async function handleButton(interaction, client, prisma) {
 
     const roleRewards = await prisma.roleReward.findMany();
     const userRewards = roleRewards.filter(r => userRoleIds.includes(r.roleId));
+    const maxRoleDiscountRate = userRewards.reduce(
+      (max, reward) => Math.max(max, Number(reward.discountRate) || 0),
+      0
+    );
 
     let rolesText = '없음';
     if (userRewards.length > 0 && member) {
@@ -158,7 +162,8 @@ export async function handleButton(interaction, client, prisma) {
           `잔액: ${balance}원\n` +
           `누적 구매 금액: ${totalSpent}원\n` +
           `누적 구매 역할: ${rolesText}\n` +
-          `적용 할인율: 없음\n` +
+          `보유 역할 할인: ${maxRoleDiscountRate > 0 ? `${maxRoleDiscountRate}%` : '없음'}\n` +
+          `할인 우선순위: 상품 할인 우선\n` +
           `미작성 후기: ${unreviewedCount}개`
         )
       );
