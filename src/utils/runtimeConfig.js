@@ -18,7 +18,3 @@ export function getDashboardUrl() {
     'PUBLIC_URL'
   ) || DEFAULT_DASHBOARD_URL;
 }
-
-export function getDbBackupChannelId() {
-  return readEnv('DB_BACKUP_CHANNEL_ID', 'DB_Backup_Channel_ID');
-}

@@ -1,28 +1,19 @@
 import { Events, REST, Routes, EmbedBuilder } from 'discord.js';
-import { setupBackupScheduler, checkAndRestoreFromBackup } from '../utils/dbBackup.js';
 import { prisma } from '../index.js';
 
 export default {
   name: Events.ClientReady,
   once: true,
   async execute(client) {
-    console.log(`✅ Bot is ready as ${client.user.tag}`);
-    console.log(`📢 Serving ${client.guilds.cache.size} servers`);
+    console.log(`Bot is ready as ${client.user.tag}`);
+    console.log(`Serving ${client.guilds.cache.size} servers`);
 
-    // DB 자동 백업 스케줄러 시작
-    setupBackupScheduler(client, prisma);
-
-    // 시작 시 DB 자동 복원 (백업 채널에서 최신 파일 확인)
-    await checkAndRestoreFromBackup(client, prisma);
-
-    // 슬래시 명령어 Discord API 등록
     try {
       const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
-      
       const commandData = client.slashCommands.map(cmd => cmd.data.toJSON());
-      
+
       if (commandData.length === 0) {
-        console.log('⚠️ 등록할 슬래시 명령어가 없습니다.');
+        console.log('No slash commands to register.');
         return;
       }
 
@@ -31,30 +22,34 @@ export default {
         { body: commandData }
       );
 
-      console.log(`✅ ${commandData.length}개의 슬래시 명령어를 Discord에 등록했습니다.`);
+      console.log(`Registered ${commandData.length} slash commands to Discord.`);
 
       try {
-        const devUser = await client.users.fetch(process.env.DEV_USER_ID || '000000000000000000');
-        if (devUser.id !== '000000000000000000') {
-          const embed = new EmbedBuilder()
-            .setTitle('✅ 슬래시 명령어 등록 완료')
-            .setColor('#00FF00')
-            .setDescription(`**${commandData.length}개**의 명령어가 등록되었습니다.`)
-            .addFields(
-              ...commandData.map(cmd => ({
-                name: `/${cmd.name}`,
-                value: cmd.description || '설명 없음',
-                inline: true
-              }))
-            )
-            .setTimestamp();
+        const devUserId = process.env.DEV_USER_ID;
+        if (devUserId) {
+          const devUser = await client.users.fetch(devUserId).catch(() => null);
+          if (devUser) {
+            const embed = new EmbedBuilder()
+              .setTitle('Slash commands registered')
+              .setColor('#00FF00')
+              .setDescription(`Registered ${commandData.length} slash commands.`)
+              .addFields(
+                ...commandData.map(cmd => ({
+                  name: `/${cmd.name}`,
+                  value: cmd.description || 'No description',
+                  inline: true
+                }))
+              )
+              .setTimestamp();
 
-          await devUser.send({ embeds: [embed] });
+            await devUser.send({ embeds: [embed] });
+          }
         }
-      } catch (devError) {}
-
+      } catch (devError) {
+        console.error('Failed to notify dev user:', devError);
+      }
     } catch (error) {
-      console.error('❌ 슬래시 명령어 등록 실패:', error);
+      console.error('Failed to register slash commands:', error);
     }
   }
 };
