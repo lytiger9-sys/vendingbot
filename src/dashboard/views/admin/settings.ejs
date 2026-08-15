@@ -55,7 +55,13 @@
           
           <div class="card-inner-flow left-inputs-balance">
             <div class="input-group">
-              <input type="text" id="bankInfo" placeholder="은행명 / 계좌번호 / 예금주 (예: OO은행 123-456-789 예금주)" class="input">
+              <input type="text" id="bankName" placeholder="은행명 (예: 국민은행)" class="input">
+            </div>
+            <div class="input-group">
+              <input type="text" id="accountNumber" placeholder="계좌번호 (예: 123-456-789)" class="input">
+            </div>
+            <div class="input-group">
+              <input type="text" id="accountHolder" placeholder="예금주명 (예: 홍길동)" class="input">
             </div>
             <div class="input-group">
               <input type="number" id="minDeposit" placeholder="최소 충전 금액" class="input">
@@ -159,7 +165,9 @@
 
   <script>
     const keyToIdMap = {
-      "BANK_INFO": "bankInfo",
+      "BANK_NAME": "bankName",
+      "ACCOUNT_NUMBER": "accountNumber",
+      "ACCOUNT_HOLDER": "accountHolder",
       "MIN_DEPOSIT": "minDeposit",
       "REVIEW_CHANNEL_ID": "reviewLogChannel",
       "PURCHASE_LOG_CHANNEL": "purchaseLogChannel",
@@ -210,11 +218,15 @@
     }
 
     async function saveBankSettings() {
-      const bankInfo = document.getElementById("bankInfo").value;
+      const bankName = document.getElementById("bankName").value;
+      const accountNumber = document.getElementById("accountNumber").value;
+      const accountHolder = document.getElementById("accountHolder").value;
       const minDeposit = document.getElementById("minDeposit").value;
 
       await Promise.all([
-        saveSetting("BANK_INFO", bankInfo),
+        saveSetting("BANK_NAME", bankName),
+        saveSetting("ACCOUNT_NUMBER", accountNumber),
+        saveSetting("ACCOUNT_HOLDER", accountHolder),
         saveSetting("MIN_DEPOSIT", minDeposit)
       ]);
       

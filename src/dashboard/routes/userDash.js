@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../../index.js';
 import { isAuthenticated } from '../middleware/auth.js';
+import { sendReviewWebhook } from '../../utils/reviewWebhook.js';
 
 const router = express.Router();
 
@@ -29,6 +30,15 @@ router.get('/', isAuthenticated, async (req, res) => {
 // User purchases page - dashboard 탭으로 리다이렉트
 router.get('/purchases-page', isAuthenticated, async (req, res) => {
   res.redirect('/dashboard?tab=purchases');
+});
+
+// 웹에서 후기 작성하는 전용 페이지 (일반 대시보드와 별개)
+router.get('/review', isAuthenticated, async (req, res) => {
+  const isAdminUser = req.user.id === process.env.ADMIN_USER_ID;
+  res.render('user/review', {
+    user: req.user,
+    isAdmin: isAdminUser
+  });
 });
 
 // Get user purchase history
@@ -105,8 +115,9 @@ router.post('/reviews', isAuthenticated, async (req, res) => {
         });
     
     // Send review to Discord channel via webhook
-    if (global.sendReviewWebhook) {
-      await global.sendReviewWebhook(req.user, receipt, rating, content);
+    const client = req.app.locals.client;
+    if (client) {
+      await sendReviewWebhook(req.user, receipt, rating, content, client);
     }
     
     res.json({ success: true });

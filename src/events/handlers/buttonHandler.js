@@ -184,19 +184,78 @@ export async function handleButton(interaction, client, prisma) {
     const container = new ContainerBuilder()
       .setAccentColor(0x00FF00)
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent('## ⭐ 후기 작성\n후기 작성 시 적립금 추가 혜택을 대시보드에서 확인하세요!')
+        new TextDisplayBuilder().setContent('## ⭐ 후기 작성\n어디에서 후기를 작성하시겠어요?')
       )
       .addActionRowComponents(
         new ActionRowBuilder({
           components: [
             new ButtonBuilder({
-              label: '대시보드 열기',
+              customId: 'btn_review_discord',
+              label: '💬 디스코드에서 하기',
+              style: ButtonStyle.Primary
+            }),
+            new ButtonBuilder({
+              label: '🌐 웹에서 하기',
               style: ButtonStyle.Link,
-              url: dashboardUrl
+              url: `${dashboardUrl}/dashboard/review`
             })
           ]
         })
       );
+
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      ephemeral: true
+    });
+    return;
+  }
+
+  // 후기 - 디스코드에서 작성하기 선택
+  if (customId === 'btn_review_discord') {
+    const unreviewedReceipts = await prisma.receipt.findMany({
+      where: { userId: interaction.user.id, hasReview: false },
+      include: { product: true },
+      orderBy: { purchasedAt: 'desc' },
+      take: 25
+    });
+
+    if (unreviewedReceipts.length === 0) {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **후기를 작성할 수 있는 구매 내역이 없습니다.**')
+        );
+
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
+    }
+
+    const options = unreviewedReceipts.map(r => ({
+      label: `${r.product?.name || '알 수 없는 상품'} - ${r.paidAmount.toLocaleString()}원`,
+      value: r.id,
+      description: new Date(r.purchasedAt).toLocaleDateString('ko-KR')
+    }));
+
+    const selectMenu = new ActionRowBuilder({
+      components: [
+        new StringSelectMenuBuilder({
+          customId: 'select_review_target',
+          placeholder: '후기를 작성할 구매 내역을 선택하세요',
+          options
+        })
+      ]
+    });
+
+    const container = new ContainerBuilder()
+      .setAccentColor(0x5865F2)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('📝 후기를 작성할 구매 내역을 선택해주세요.')
+      )
+      .addActionRowComponents(selectMenu);
 
     await interaction.reply({
       components: [container],

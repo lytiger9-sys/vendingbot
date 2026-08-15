@@ -85,7 +85,7 @@
       </div>
 
       <!-- 후기 작성 모달 -->
-      <div id="reviewModal" class="modal-overlay">
+      <div id="reviewModal" class="modal-overlay hidden">
         <div class="modal">
           <div class="modal-header">
             ⭐ 후기 작성
@@ -260,10 +260,12 @@
         function openReviewModal(id) {
           document.getElementById("reviewReceiptId").value = id;
           document.getElementById("reviewModal").classList.remove("hidden");
+          document.getElementById("reviewModal").classList.add("active");
         }
 
         function closeReviewModal() {
           document.getElementById("reviewModal").classList.add("hidden");
+          document.getElementById("reviewModal").classList.remove("active");
         }
 
         async function submitReview() {

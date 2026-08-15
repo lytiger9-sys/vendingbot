@@ -1,6 +1,7 @@
 import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
 import { processPurchase } from './purchaseProcessor.js';
 import { upsertChargeLog } from '../../utils/paymentLogger.js';
+import { sendReviewWebhook } from '../../utils/reviewWebhook.js';
 
 export async function handleModalSubmit(interaction, client, prisma) {
   const { customId } = interaction;
@@ -97,16 +98,27 @@ export async function handleModalSubmit(interaction, client, prisma) {
     // 충전 로그 채널에 대기중 상태로 최초 기록
     await upsertChargeLog(client, prisma, payment);
 
-    // 계좌 정보 가져오기
-    const bankSetting = await prisma.systemSetting.findUnique({
-      where: { key: 'BANK_INFO' }
-    });
+    // 계좌 정보 가져오기 (은행명/계좌번호/예금주명 각각 별도 설정값)
+    const [bankNameSetting, accountNumberSetting, accountHolderSetting] = await Promise.all([
+      prisma.systemSetting.findUnique({ where: { key: 'BANK_NAME' } }),
+      prisma.systemSetting.findUnique({ where: { key: 'ACCOUNT_NUMBER' } }),
+      prisma.systemSetting.findUnique({ where: { key: 'ACCOUNT_HOLDER' } })
+    ]);
+
+    const bankName = bankNameSetting?.value || '미설정';
+    const accountNumber = accountNumberSetting?.value || '미설정';
+    const accountHolder = accountHolderSetting?.value || '미설정';
 
     const container = new ContainerBuilder()
       .setAccentColor(0x00FF00)
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `# 💰 입금 신청 완료\n\n신청이 완료되었습니다. 입금 확인 후 포인트가 충전됩니다.\n\n**입금자명:** ${senderName}\n**입금 금액:** ${amount.toLocaleString()}원\n\n**계좌정보:**\n${bankSetting?.value || '설정된 계좌정보 없음'}`
+          `## 💳 계좌 충전\n\n` +
+          `- 은행명: \`${bankName}\`\n` +
+          `- 계좌번호: \`${accountNumber}\`\n` +
+          `- 예금주명: \`${accountHolder}\`\n` +
+          `- 입금자명: \`${senderName}\`\n` +
+          `- 입금 금액: \`${amount.toLocaleString()}\` 원`
         )
       );
 
@@ -207,6 +219,107 @@ export async function handleModalSubmit(interaction, client, prisma) {
 
     // 구매 처리
     await processPurchase(interaction, productId, prisma, client, qty, lockKey);
+    return;
+  }
+
+  // 후기 작성 모달 (디스코드에서 작성)
+  if (customId.startsWith('modal_review_')) {
+    const receiptId = customId.replace('modal_review_', '');
+
+    const ratingInput = interaction.fields.getTextInputValue('review_rating');
+    const content = interaction.fields.getTextInputValue('review_content');
+    const rating = parseInt(ratingInput, 10);
+
+    // 평점 유효성 검사 (1~5 정수)
+    if (isNaN(rating) || rating < 1 || rating > 5) {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **평점은 1~5 사이의 숫자로 입력해주세요.**')
+        );
+
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
+    }
+
+    // 후기 내용 유효성 검사
+    if (!content || content.trim() === '') {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **후기 내용을 입력해주세요.**')
+        );
+
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
+    }
+
+    // 본인 구매 내역이 맞는지, 이미 작성한 후기가 아닌지 확인
+    const receipt = await prisma.receipt.findFirst({
+      where: { id: receiptId, userId: interaction.user.id },
+      include: { product: true }
+    });
+
+    if (!receipt) {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **구매 내역을 찾을 수 없습니다.**')
+        );
+
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
+    }
+
+    if (receipt.hasReview) {
+      const container = new ContainerBuilder()
+        .setAccentColor(0xFF5555)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('❌ **이미 후기를 작성한 구매 내역입니다.**')
+        );
+
+      return interaction.reply({
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
+        ephemeral: true
+      });
+    }
+
+    await prisma.receipt.update({
+      where: { id: receiptId },
+      data: {
+        hasReview: true,
+        reviewRating: rating,
+        reviewContent: content.trim()
+      }
+    });
+
+    // 후기 채널에도 동일하게 전송 (웹에서 작성했을 때와 동일한 로직 재사용)
+    await sendReviewWebhook(interaction.user, receipt, rating, content.trim(), client);
+
+    const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    const container = new ContainerBuilder()
+      .setAccentColor(0x00FF00)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `# ✅ 후기가 등록되었습니다\n\n**상품:** ${receipt.product?.name || '알 수 없음'}\n**평점:** ${stars}\n**내용:** ${content.trim()}`
+        )
+      );
+
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      ephemeral: true
+    });
     return;
   }
 }
