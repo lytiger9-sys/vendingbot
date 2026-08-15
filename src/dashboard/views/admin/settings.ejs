@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>筌ㅼ뮇?揶쎛 NO.1 獄쏆뮆以??볧??????곴틣 [24H]</title>
+  <title>관리자 페이지 [24H]</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,86 +13,86 @@
 <body>
   <div class="dashboard-container">
     <aside class="sidebar">
-      <h1 class="sidebar-title">????癒곕솇疫???/h1>
+      <h1 class="sidebar-title">관리자 대시보드</h1>
       <nav class="sidebar-nav">
-        <a href="/admin" class="nav-link"><span></span> ?遺쎌퍢 ??쇱읅</a>
-        <a href="/admin/products" class="nav-link"><span></span> ??쀫?</a>
-        <a href="/admin/logs" class="nav-link"><span></span> 嚥≪뮄??/a>
-        <a href="/admin/settings" class="nav-link active"><span></span> ??쇱젟</a>
-        <a href="/admin/embed" class="nav-link"><span></span> ?袁⑥퓢??/a>
-        <a href="/admin/roles" class="nav-link"><span></span> ??釉?筌왖疫?/a>
+        <a href="/admin" class="nav-link"><span></span> 홈 / 대시보드</a>
+        <a href="/admin/products" class="nav-link"><span></span> 상품 관리</a>
+        <a href="/admin/logs" class="nav-link"><span></span> 로그</a>
+        <a href="/admin/settings" class="nav-link active"><span></span> 설정</a>
+        <a href="/admin/embed" class="nav-link"><span></span> 임베드</a>
+        <a href="/admin/roles" class="nav-link"><span></span> 역할 관리</a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-profile">
           <% if (user.avatar) { %>
-            <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png?size=128" class="user-avatar" alt="?袁⑥쨮??>
+            <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png?size=128" class="user-avatar" alt="유저 아바타">
           <% } else { %>
-            <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="user-avatar" alt="?袁⑥쨮??>
+            <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="user-avatar" alt="유저 아바타">
           <% } %>
-          <div class="user-name"><%= user.username || '?온?귐딆쁽' %></div>
+          <div class="user-name"><%= user.username || '관리자' %></div>
         </div>
-        <a href="/dashboard" class="nav-link"><span>?維</span> ??????뺣궖??/a>
-        <a href="/auth/logout" class="logout-link-animated"><span>???/span> 嚥≪뮄??袁⑹뜍</a>
+        <a href="/dashboard" class="nav-link"><span></span> 대시보드 메인</a>
+        <a href="/auth/logout" class="logout-link-animated"><span></span> 로그아웃</a>
       </div>
     </aside>
     
     <main class="main-content">
       <div class="page-header">
-        <h1 class="title-md">?癒?짗?겸뫗??嚥≪뮄????쇱젟</h1>
+        <h1 class="title-md">자동충전 / 시스템 설정</h1>
       </div>
 
       <div class="card mb-6">
-        <div class="card-header">?逾???뺤쒔 筌띻낱寃?/div>
+        <div class="card-header">서버 초대 링크</div>
         <div class="flex gap-2">
           <input type="text" id="serverLink" placeholder="https://discord.gg/xxxxx" class="input" style="flex: 1;">
-          <button onclick="saveServerLink()" class="btn btn-primary">????/button>
+          <button onclick="saveServerLink()" class="btn btn-primary">저장</button>
         </div>
       </div>
 
       <div class="settings-card-grid mb-6">
         <div class="card setting-equal-card">
-          <div class="card-header">?裕??④쑴伊??類ｋ궖</div>
+          <div class="card-header">계좌 정보 / 최소 충전금액</div>
           
           <div class="card-inner-flow left-inputs-balance">
             <div class="input-group">
-              <input type="text" id="bankInfo" placeholder="????곗구/?④쑴伊뽬린?딆깈 (?? ??? 123-456-789)" class="input">
+              <input type="text" id="bankInfo" placeholder="은행명 / 계좌번호 / 예금주 (예: OO은행 123-456-789 예금주)" class="input">
             </div>
             <div class="input-group">
-              <input type="number" id="minDeposit" placeholder="筌ㅼ뮇????껎닊 疫뀀뜆釉? class="input">
+              <input type="number" id="minDeposit" placeholder="최소 충전 금액" class="input">
             </div>
           </div>
           
           <div class="card-action-row">
-            <button onclick="saveBankSettings()" class="btn btn-primary" style="width: 100%;">????/button>
+            <button onclick="saveBankSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
           </div>
         </div>
         
         <div class="card setting-equal-card">
-          <div class="card-header">?諭?嚥≪뮄??筌?쑬瑗?ID</div>
+          <div class="card-header">디스코드 로그 채널 ID</div>
           
           <div class="card-inner-flow right-inputs-balance">
             <div class="input-group">
-              <input type="text" id="reviewLogChannel" placeholder="?닌됤꼻 ?袁㏓┛ 嚥≪뮄??筌?쑬瑗?ID" class="input">
+              <input type="text" id="reviewLogChannel" placeholder="리뷰 로그 채널 ID" class="input">
             </div>
             <div class="input-group">
-              <input type="text" id="purchaseLogChannel" placeholder="?닌됤꼻 嚥≪뮄??筌?쑬瑗?ID" class="input">
+              <input type="text" id="purchaseLogChannel" placeholder="구매 로그 채널 ID" class="input">
             </div>
             <div class="input-group">
-                          <input type="text" id="chargeLogChannel" placeholder="?겸뫗??嚥≪뮄??筌?쑬瑗?ID (?癒?짗/??롫짗 ?⑤벊??" class="input">
-                        </div>
-                      </div>
+              <input type="text" id="chargeLogChannel" placeholder="충전 로그 채널 ID" class="input">
+            </div>
+          </div>
 
-                      <div class="card-action-row">
-                        <button onclick="saveChannelSettings()" class="btn btn-primary" style="width: 100%;">????/button>
-                      </div>
-                    </div>
-                  </div>
+          <div class="card-action-row">
+            <button onclick="saveChannelSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
+          </div>
+        </div>
+      </div>
 
       <div class="card">
-        <div class="card-header">?踰?SMS ?癒?짗?겸뫗??揶쎛??諭?/div>
+        <div class="card-header">자동 SMS 충전 설정 가이드</div>
         <div class="flex gap-4 mb-4">
-          <button onclick="showGuide('android')" id="btnAndroid" class="btn btn-success">??덈굡嚥≪뮇???/button>
-          <button onclick="showGuide('ios')" id="btnIos" class="btn btn-outline">?袁⑹뵠??/button>
+          <button onclick="showGuide('android')" id="btnAndroid" class="btn btn-success">Android</button>
+          <button onclick="showGuide('ios')" id="btnIos" class="btn btn-outline">iOS</button>
         </div>
         <div id="guideContent" class="guide-box"></div>
       </div>
@@ -123,7 +123,7 @@
       display: flex;
       flex-direction: column;
       flex: 1;
-      gap: 12px; /* ??낆젾筌??????揶쏄쑨爰???類???띿쓺 ???뵬 */
+      gap: 12px;
     }
 
     .card-inner-flow.left-inputs-balance {
@@ -135,6 +135,7 @@
       gap: 12px;
       justify-content: flex-start;
     }
+    
     .setting-equal-card .input-group {
       margin-bottom: 0 !important;
     }
@@ -166,6 +167,15 @@
       "SERVER_LINK": "serverLink"
     };
 
+    // 공통 토스트 메시지 호출 함수 (common.js가 없거나 동작 안 할 시 대처용 폴리필)
+    function notify(message, type = "success") {
+      if (typeof showToast === "function") {
+        showToast(message, type);
+      } else {
+        alert(message);
+      }
+    }
+
     async function loadSettings() {
       try {
         const r = await fetch("/api/settings");
@@ -181,7 +191,7 @@
           });
         }
       } catch (e) {
-        console.error("??쇱젟???븍뜄???삳뮉????쎈솭??됰뮸??덈뼄:", e);
+        console.error("설정을 불러오는 중 오류가 발생했습니다:", e);
       }
     }
 
@@ -196,20 +206,19 @@
     async function saveServerLink() {
       const serverLink = document.getElementById("serverLink").value;
       await saveSetting("SERVER_LINK", serverLink);
-      showToast("??뺤쒔 筌띻낱寃뺝첎? ???貫由??됰뮸??덈뼄.", "success");
+      notify("서버 링크가 저장되었습니다.", "success");
     }
 
     async function saveBankSettings() {
       const bankInfo = document.getElementById("bankInfo").value;
       const minDeposit = document.getElementById("minDeposit").value;
 
-      // ??API ?紐꾪뀱??癰귣쵎??筌ｌ꼶??
       await Promise.all([
         saveSetting("BANK_INFO", bankInfo),
         saveSetting("MIN_DEPOSIT", minDeposit)
       ]);
       
-      showToast("?④쑴伊??類ｋ궖揶쎛 ???貫由??됰뮸??덈뼄.", "success");
+      notify("계좌 정보가 저장되었습니다.", "success");
     }
 
     async function saveChannelSettings() {
@@ -219,31 +228,46 @@
         { key: "CHARGE_LOG_CHANNEL", value: document.getElementById("chargeLogChannel").value },
       ];
 
-      // 癰귣쵎???遺욧퍕??곗쨮 ??얜즲 筌ㅼ뮇???
       const requests = channelMappings
         .filter(item => item.value !== undefined)
         .map(item => saveSetting(item.key, item.value));
 
       await Promise.all(requests);
-      showToast("嚥≪뮄??筌?쑬瑗???쇱젟?????貫由??됰뮸??덈뼄.", "success");
+      notify("로그 채널 설정이 저장되었습니다.", "success");
     }
 
-        const pushbulletGuide = `Pushbullet ?먮룞異⑹쟾 ?ㅼ젙
+    const pushbulletGuide = `Pushbullet 자동충전 설정 (Android)
 
-1. Pushbullet Android ?깆쓣 ?ㅼ튂?⑸땲??
-2. Pushbullet ?깆뿉??Notification Mirroring??耳?땲??
-3. .env??PUSHBULLET_TOKEN 媛믪쓣 ?낅젰?⑸땲??
-4. ???臾몄옄/?뚮┝??Pushbullet ?ㅽ듃由쇱쑝濡??ㅼ뼱?ㅻ㈃ ?쒕쾭媛 ?먮룞?쇰줈 泥섎━?⑸땲??
-5. SMS Forwarder, webhook/sms, WEBHOOK_SECRET? ???댁긽 ?ъ슜?섏? ?딆뒿?덈떎.`;
+1. Pushbullet Android 앱을 설치합니다.
+2. Pushbullet 앱에서 Notification Mirroring을 켭니다.
+3. .env에 PUSHBULLET_TOKEN 값을 입력합니다.
+4. 입금 문자/알림이 Pushbullet 스트림으로 들어오면 서버가 자동으로 처리합니다.
+5. SMS Forwarder, webhook/sms, WEBHOOK_SECRET은 더 이상 사용하지 않습니다.`;
 
-    function showGuide() {
-      document.getElementById("guideContent").textContent = pushbulletGuide;
-      document.getElementById("btnAndroid").className = "btn btn-success";
-      document.getElementById("btnIos").className = "btn btn-outline";
+    const iosGuide = `iOS 가이드
+
+iOS 환경에서는 Pushbullet 알림 미러링을 지원하지 않습니다. 
+Android 기기를 이용해 연결해 주시기 바랍니다.`;
+
+    function showGuide(platform = 'android') {
+      const guideBox = document.getElementById("guideContent");
+      const btnAndroid = document.getElementById("btnAndroid");
+      const btnIos = document.getElementById("btnIos");
+
+      if (platform === 'ios') {
+        guideBox.textContent = iosGuide;
+        btnAndroid.className = "btn btn-outline";
+        btnIos.className = "btn btn-success";
+      } else {
+        guideBox.textContent = pushbulletGuide;
+        btnAndroid.className = "btn btn-success";
+        btnIos.className = "btn btn-outline";
+      }
     }
 
     loadSettings();
-    showGuide();</script>
+    showGuide('android');
+  </script>
   <script src="/js/common.js"></script>
 </body>
 </html>
