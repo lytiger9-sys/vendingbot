@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>최저가 NO.1 발로랜계 킬조이샵 [24H]</title>
+  <title>筌ㅼ뮇?揶쎛 NO.1 獄쏆뮆以??볧??????곴틣 [24H]</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,86 +13,86 @@
 <body>
   <div class="dashboard-container">
     <aside class="sidebar">
-      <h1 class="sidebar-title">🛒 자판기 봇</h1>
+      <h1 class="sidebar-title">????癒곕솇疫???/h1>
       <nav class="sidebar-nav">
-        <a href="/admin" class="nav-link"><span></span> 월간 실적</a>
-        <a href="/admin/products" class="nav-link"><span></span> 제품</a>
-        <a href="/admin/logs" class="nav-link"><span></span> 로그</a>
-        <a href="/admin/settings" class="nav-link active"><span></span> 설정</a>
-        <a href="/admin/embed" class="nav-link"><span></span> 임베드</a>
-        <a href="/admin/roles" class="nav-link"><span></span> 역할 지급</a>
+        <a href="/admin" class="nav-link"><span></span> ?遺쎌퍢 ??쇱읅</a>
+        <a href="/admin/products" class="nav-link"><span></span> ??쀫?</a>
+        <a href="/admin/logs" class="nav-link"><span></span> 嚥≪뮄??/a>
+        <a href="/admin/settings" class="nav-link active"><span></span> ??쇱젟</a>
+        <a href="/admin/embed" class="nav-link"><span></span> ?袁⑥퓢??/a>
+        <a href="/admin/roles" class="nav-link"><span></span> ??釉?筌왖疫?/a>
       </nav>
       <div class="sidebar-footer">
         <div class="user-profile">
           <% if (user.avatar) { %>
-            <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png?size=128" class="user-avatar" alt="프로필">
+            <img src="https://cdn.discordapp.com/avatars/<%= user.id %>/<%= user.avatar %>.png?size=128" class="user-avatar" alt="?袁⑥쨮??>
           <% } else { %>
-            <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="user-avatar" alt="프로필">
+            <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="user-avatar" alt="?袁⑥쨮??>
           <% } %>
-          <div class="user-name"><%= user.username || '관리자' %></div>
+          <div class="user-name"><%= user.username || '?온?귐딆쁽' %></div>
         </div>
-        <a href="/dashboard" class="nav-link"><span>👤</span> 내 대시보드</a>
-        <a href="/auth/logout" class="logout-link-animated"><span>🚪</span> 로그아웃</a>
+        <a href="/dashboard" class="nav-link"><span>?維</span> ??????뺣궖??/a>
+        <a href="/auth/logout" class="logout-link-animated"><span>???/span> 嚥≪뮄??袁⑹뜍</a>
       </div>
     </aside>
     
     <main class="main-content">
       <div class="page-header">
-        <h1 class="title-md">자동충전/로그 설정</h1>
+        <h1 class="title-md">?癒?짗?겸뫗??嚥≪뮄????쇱젟</h1>
       </div>
 
       <div class="card mb-6">
-        <div class="card-header">🔗 서버 링크</div>
+        <div class="card-header">?逾???뺤쒔 筌띻낱寃?/div>
         <div class="flex gap-2">
           <input type="text" id="serverLink" placeholder="https://discord.gg/xxxxx" class="input" style="flex: 1;">
-          <button onclick="saveServerLink()" class="btn btn-primary">저장</button>
+          <button onclick="saveServerLink()" class="btn btn-primary">????/button>
         </div>
       </div>
 
       <div class="settings-card-grid mb-6">
         <div class="card setting-equal-card">
-          <div class="card-header">💰 계좌 정보</div>
+          <div class="card-header">?裕??④쑴伊??類ｋ궖</div>
           
           <div class="card-inner-flow left-inputs-balance">
             <div class="input-group">
-              <input type="text" id="bankInfo" placeholder="은행명/계좌번호 (예: 국민 123-456-789)" class="input">
+              <input type="text" id="bankInfo" placeholder="????곗구/?④쑴伊뽬린?딆깈 (?? ??? 123-456-789)" class="input">
             </div>
             <div class="input-group">
-              <input type="number" id="minDeposit" placeholder="최소 입금 금액" class="input">
+              <input type="number" id="minDeposit" placeholder="筌ㅼ뮇????껎닊 疫뀀뜆釉? class="input">
             </div>
           </div>
           
           <div class="card-action-row">
-            <button onclick="saveBankSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
+            <button onclick="saveBankSettings()" class="btn btn-primary" style="width: 100%;">????/button>
           </div>
         </div>
         
         <div class="card setting-equal-card">
-          <div class="card-header">📝 로그 채널 ID</div>
+          <div class="card-header">?諭?嚥≪뮄??筌?쑬瑗?ID</div>
           
           <div class="card-inner-flow right-inputs-balance">
             <div class="input-group">
-              <input type="text" id="reviewLogChannel" placeholder="구매 후기 로그 채널 ID" class="input">
+              <input type="text" id="reviewLogChannel" placeholder="?닌됤꼻 ?袁㏓┛ 嚥≪뮄??筌?쑬瑗?ID" class="input">
             </div>
             <div class="input-group">
-              <input type="text" id="purchaseLogChannel" placeholder="구매 로그 채널 ID" class="input">
+              <input type="text" id="purchaseLogChannel" placeholder="?닌됤꼻 嚥≪뮄??筌?쑬瑗?ID" class="input">
             </div>
             <div class="input-group">
-                          <input type="text" id="chargeLogChannel" placeholder="충전 로그 채널 ID (자동/수동 공용)" class="input">
+                          <input type="text" id="chargeLogChannel" placeholder="?겸뫗??嚥≪뮄??筌?쑬瑗?ID (?癒?짗/??롫짗 ?⑤벊??" class="input">
                         </div>
                       </div>
 
                       <div class="card-action-row">
-                        <button onclick="saveChannelSettings()" class="btn btn-primary" style="width: 100%;">저장</button>
+                        <button onclick="saveChannelSettings()" class="btn btn-primary" style="width: 100%;">????/button>
                       </div>
                     </div>
                   </div>
 
       <div class="card">
-        <div class="card-header">📱 SMS 자동충전 가이드</div>
+        <div class="card-header">?踰?SMS ?癒?짗?겸뫗??揶쎛??諭?/div>
         <div class="flex gap-4 mb-4">
-          <button onclick="showGuide('android')" id="btnAndroid" class="btn btn-success">안드로이드</button>
-          <button onclick="showGuide('ios')" id="btnIos" class="btn btn-outline">아이폰</button>
+          <button onclick="showGuide('android')" id="btnAndroid" class="btn btn-success">??덈굡嚥≪뮇???/button>
+          <button onclick="showGuide('ios')" id="btnIos" class="btn btn-outline">?袁⑹뵠??/button>
         </div>
         <div id="guideContent" class="guide-box"></div>
       </div>
@@ -123,7 +123,7 @@
       display: flex;
       flex-direction: column;
       flex: 1;
-      gap: 12px; /* 입력창 사이의 간격을 정밀하게 통일 */
+      gap: 12px; /* ??낆젾筌??????揶쏄쑨爰???類???띿쓺 ???뵬 */
     }
 
     .card-inner-flow.left-inputs-balance {
@@ -181,7 +181,7 @@
           });
         }
       } catch (e) {
-        console.error("설정을 불러오는데 실패했습니다:", e);
+        console.error("??쇱젟???븍뜄???삳뮉????쎈솭??됰뮸??덈뼄:", e);
       }
     }
 
@@ -196,20 +196,20 @@
     async function saveServerLink() {
       const serverLink = document.getElementById("serverLink").value;
       await saveSetting("SERVER_LINK", serverLink);
-      showToast("서버 링크가 저장되었습니다.", "success");
+      showToast("??뺤쒔 筌띻낱寃뺝첎? ???貫由??됰뮸??덈뼄.", "success");
     }
 
     async function saveBankSettings() {
       const bankInfo = document.getElementById("bankInfo").value;
       const minDeposit = document.getElementById("minDeposit").value;
 
-      // 두 API 호출을 병렬 처리
+      // ??API ?紐꾪뀱??癰귣쵎??筌ｌ꼶??
       await Promise.all([
         saveSetting("BANK_INFO", bankInfo),
         saveSetting("MIN_DEPOSIT", minDeposit)
       ]);
       
-      showToast("계좌 정보가 저장되었습니다.", "success");
+      showToast("?④쑴伊??類ｋ궖揶쎛 ???貫由??됰뮸??덈뼄.", "success");
     }
 
     async function saveChannelSettings() {
@@ -219,52 +219,31 @@
         { key: "CHARGE_LOG_CHANNEL", value: document.getElementById("chargeLogChannel").value },
       ];
 
-      // 병렬 요청으로 속도 최적화
+      // 癰귣쵎???遺욧퍕??곗쨮 ??얜즲 筌ㅼ뮇???
       const requests = channelMappings
         .filter(item => item.value !== undefined)
         .map(item => saveSetting(item.key, item.value));
 
       await Promise.all(requests);
-      showToast("로그 채널 설정이 저장되었습니다.", "success");
+      showToast("嚥≪뮄??筌?쑬瑗???쇱젟?????貫由??됰뮸??덈뼄.", "success");
     }
 
-    const androidGuide = `<안드로이드 SMS 웹훅 설정>
+        const pushbulletGuide = `Pushbullet ?먮룞異⑹쟾 ?ㅼ젙
 
-⚠️ 아래 URL은 "디스코드 웹훅"이 아니라, 이 봇 서버 주소입니다.
-(디스코드 웹훅 URL을 입력하면 절대 충전되지 않습니다!)
+1. Pushbullet Android ?깆쓣 ?ㅼ튂?⑸땲??
+2. Pushbullet ?깆뿉??Notification Mirroring??耳?땲??
+3. .env??PUSHBULLET_TOKEN 媛믪쓣 ?낅젰?⑸땲??
+4. ???臾몄옄/?뚮┝??Pushbullet ?ㅽ듃由쇱쑝濡??ㅼ뼱?ㅻ㈃ ?쒕쾭媛 ?먮룞?쇰줈 泥섎━?⑸땲??
+5. SMS Forwarder, webhook/sms, WEBHOOK_SECRET? ???댁긽 ?ъ슜?섏? ?딆뒿?덈떎.`;
 
-1. SMS Forwarder 앱 설치
-2. Sender > Web 설정
-3. URL에 아래 주소 입력:
-   https://[내 서버 주소]/webhook/sms?secret=[.env의 WEBHOOK_SECRET 값]
-4. Payload: {"content":"[SMS 수신 내용: {msg}] (발신자: {phone})"}
-5. Rules > SMS 필터 설정
-6. 입금 문구 포함 시 동작하도록 설정`;
-
-    const iosGuide = `<아이폰 Shortcuts 설정>
-
-⚠️ 아래 URL은 "디스코드 웹훅"이 아니라, 이 봇 서버 주소입니다.
-(디스코드 웹훅 URL을 입력하면 절대 충전되지 않습니다!)
-
-1. 단축어 앱 > 자동화 탭
-2. 메시지 트리거 추가
-3. 송신자: 은행번호, 내용: 입금
-4. 동작 추가 > URL
-5. 아래 주소 입력:
-   https://[내 서버 주소]/webhook/sms?secret=[.env의 WEBHOOK_SECRET 값]
-6. Get Contents of URL
-7. Method: POST, Body: JSON
-8. Key: content, Value: 메시지 텍스트`;
-
-    function showGuide(type) {
-      document.getElementById("guideContent").textContent = type === "android" ? androidGuide : iosGuide;
-      document.getElementById("btnAndroid").className = type === "android" ? "btn btn-success" : "btn btn-outline";
-      document.getElementById("btnIos").className = type === "ios" ? "btn btn-success" : "btn btn-outline";
+    function showGuide() {
+      document.getElementById("guideContent").textContent = pushbulletGuide;
+      document.getElementById("btnAndroid").className = "btn btn-success";
+      document.getElementById("btnIos").className = "btn btn-outline";
     }
 
     loadSettings();
-    showGuide("android");
-  </script>
+    showGuide();</script>
   <script src="/js/common.js"></script>
 </body>
 </html>

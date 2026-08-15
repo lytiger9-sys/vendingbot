@@ -18,3 +18,7 @@ export function getDashboardUrl() {
     'PUBLIC_URL'
   ) || DEFAULT_DASHBOARD_URL;
 }
+
+export function getPushbulletToken() {
+  return readEnv('PUSHBULLET_TOKEN', 'PUSHBULLET_ACCESS_TOKEN');
+}

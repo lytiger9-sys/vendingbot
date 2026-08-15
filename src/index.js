@@ -5,8 +5,8 @@ import express from 'express';
 import session from 'express-session';
 import passport from 'passport';
 import { Strategy } from 'passport-discord';
-import { processPayment } from './utils/paymentProcessor.js';
 import { PrismaSessionStore } from './utils/prismaSessionStore.js';
+import { startPushbulletListener } from './utils/pushbulletListener.js';
 
 export const client = new Client({
   intents: [
@@ -25,19 +25,16 @@ client.slashCommands = new Collection();
 
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// View engine
 app.set('view engine', 'ejs');
 app.set('views', './src/dashboard/views');
 
-// Static files
 app.use('/css', express.static('./src/dashboard/public/css'));
 app.use('/js', express.static('./src/dashboard/public/js'));
 app.use(express.static('./src/dashboard/public'));
-// Session
+
 app.use(session({
   store: new PrismaSessionStore(prisma),
   secret: process.env.SESSION_SECRET || 'secret',
@@ -46,7 +43,6 @@ app.use(session({
   cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
 }));
 
-// Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -85,7 +81,6 @@ passport.use(new Strategy({
   }
 }));
 
-// Routes
 import dashboardRouter from './dashboard/routes/index.js';
 import authRouter from './dashboard/routes/auth.js';
 import productsRouter from './dashboard/routes/products.js';
@@ -102,31 +97,6 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/logs', logsRouter);
 app.use('/dashboard', userDashRouter);
 
-// SMS Webhook endpoint (시크릿 키 인증 필요)
-app.post('/webhook/sms', async (req, res) => {
-  try {
-    const providedSecret = req.get('x-webhook-secret') || req.query.secret;
-    const expectedSecret = process.env.WEBHOOK_SECRET;
-
-    if (!expectedSecret) {
-      console.error('WEBHOOK_SECRET이 .env에 설정되어 있지 않습니다. 요청을 거부합니다.');
-      return res.status(500).send('Server misconfigured');
-    }
-
-    if (!providedSecret || providedSecret !== expectedSecret) {
-      console.warn('SMS 웹훅 인증 실패 (잘못된 시크릿 키):', req.ip);
-      return res.status(401).send('Unauthorized');
-    }
-
-    await processPayment(req.body, { prisma, client });
-    res.status(200).send('OK');
-  } catch (error) {
-    console.error('SMS webhook error:', error);
-    res.status(500).send('Error');
-  }
-});
-
-// Global function for sending DMs
 global.sendUserDM = async (userId, options) => {
   try {
     const user = await client.users.fetch(userId);
@@ -136,23 +106,22 @@ global.sendUserDM = async (userId, options) => {
   }
 };
 
-// Start server
 const PORT = process.env.PORT || 3000;
 
 async function start() {
   try {
     await prisma.$connect();
     console.log('Database connected');
-    
+
     await loadCommands(client);
     await loadEvents(client);
-    
+
     await client.login(process.env.DISCORD_BOT_TOKEN);
+    startPushbulletListener({ prisma, client });
     console.log('Bot logged in');
-    
-    // Discord client를 app.locals에 할당 (API 라우트에서 사용)
+
     app.locals.client = client;
-    
+
     app.listen(PORT, () => {
       console.log('Server running on port ' + PORT);
     });
@@ -165,6 +134,9 @@ async function start() {
 start();
 
 process.on('SIGINT', async () => {
-  await prisma.$connect();
-  process.exit();
+  try {
+    await prisma.$disconnect();
+  } finally {
+    process.exit(0);
+  }
 });

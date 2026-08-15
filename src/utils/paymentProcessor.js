@@ -88,7 +88,11 @@ export async function processPayment(data, deps = {}) {
     throw new Error('processPayment requires a prisma instance');
   }
 
-  const content = String(data?.content ?? data?.text ?? '');
+  const fallbackContent = [data?.title, data?.body]
+    .map(value => String(value ?? '').trim())
+    .filter(Boolean)
+    .join('\n');
+  const content = String(data?.content ?? data?.text ?? fallbackContent ?? '');
   const amount = extractDepositAmount(content);
 
   if (amount === null) {
@@ -176,4 +180,3 @@ export async function processPayment(data, deps = {}) {
 
   return null;
 }
-
