@@ -7,6 +7,7 @@ import passport from 'passport';
 import { Strategy } from 'passport-discord';
 import { PrismaSessionStore } from './utils/prismaSessionStore.js';
 import { startPushbulletListener } from './utils/pushbulletListener.js';
+import { startPaymentExpiryScheduler, stopPaymentExpiryScheduler } from './utils/paymentExpiryScheduler.js';
 
 export const client = new Client({
   intents: [
@@ -118,6 +119,7 @@ async function start() {
 
     await client.login(process.env.DISCORD_BOT_TOKEN);
     startPushbulletListener({ prisma, client });
+    startPaymentExpiryScheduler(prisma);
     console.log('Bot logged in');
 
     app.locals.client = client;
@@ -135,6 +137,7 @@ start();
 
 process.on('SIGINT', async () => {
   try {
+    stopPaymentExpiryScheduler(); 
     await prisma.$disconnect();
   } finally {
     process.exit(0);
