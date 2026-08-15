@@ -16,18 +16,18 @@ export async function sendReviewWebhook(user, receipt, rating, content, client) 
     if (!channel) return;
     
     const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
-    
+
     const embed = new EmbedBuilder()
-      .setTitle('새로운 후기')
+      .setTitle('새 후기')
       .setColor('#FFD700')
-      .addFields(
-        { name: '유저', value: user.id, inline: true },
-        { name: '제품', value: receipt.product?.name || '알 수 없음', inline: true },
-        { name: '평점', value: stars, inline: true },
-        { name: '후기', value: content || '후기 내용 없음' }
+      .setDescription(
+        `유저: <@${user.id}> (${user.username || '알 수 없음'})\n` +
+        `제품: ${receipt.product?.name || '알 수 없음'}\n` +
+        `별점: ${stars} (${rating}점)\n\n` +
+        `${content || '후기 내용 없음'}`
       )
       .setTimestamp();
-    
+
     await channel.send({ embeds: [embed] });
   } catch (error) {
     console.error('Review webhook error:', error);
