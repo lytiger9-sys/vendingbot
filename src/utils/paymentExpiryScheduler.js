@@ -1,5 +1,6 @@
 import { getAutoChargeWindowCutoff } from './autoChargeMatcher.js';
 import { upsertChargeLog } from './paymentLogger.js';
+import { markDepositReplyExpired } from './depositReplyEditor.js';
 
 const DEFAULT_CHECK_INTERVAL_MS = 60 * 1000; // 1분마다 체크
 
@@ -30,6 +31,7 @@ async function expireAllStalePendingPayments(prisma, client) {
       type: true,
       logChannelId: true,
       logMessageId: true,
+      interactionToken: true,
     },
   });
 
@@ -59,6 +61,13 @@ async function expireAllStalePendingPayments(prisma, client) {
       await upsertChargeLog(client, prisma, expiredPayment);
     } catch (error) {
       console.error(`[auto-charge-expiry] failed to update log embed for payment ${payment.id}:`, error);
+    }
+
+    // 유저가 받았던 원본 "입금 신청 완료" 응답 메시지도 만료 상태로 수정
+    try {
+      await markDepositReplyExpired(expiredPayment);
+    } catch (error) {
+      console.error(`[auto-charge-expiry] failed to update original reply for payment ${payment.id}:`, error);
     }
 
     // 유저에게 만료 안내 DM (실패해도 전체 흐름에 영향 없도록 개별 try/catch)

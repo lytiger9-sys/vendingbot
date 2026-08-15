@@ -119,7 +119,7 @@ async function start() {
 
     await client.login(process.env.DISCORD_BOT_TOKEN);
     startPushbulletListener({ prisma, client });
-    startPaymentExpiryScheduler(prisma);
+    startPaymentExpiryScheduler(prisma, client);
     console.log('Bot logged in');
 
     app.locals.client = client;

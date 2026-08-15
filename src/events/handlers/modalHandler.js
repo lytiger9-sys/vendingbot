@@ -62,6 +62,23 @@ export async function handleModalSubmit(interaction, client, prisma) {
       });
     }
 
+    // 유저가 웹 대시보드 로그인 없이 디스코드에서만 입금 신청을 하는 경우,
+    // User 레코드가 아예 없을 수 있으므로 결제 생성 전에 반드시 보장해준다.
+    // (이게 없으면 자동충전 매칭 성공 시 paymentProcessor.js의 tx.user.update가
+    //  P2025 "Record to update not found"로 실패함)
+    await prisma.user.upsert({
+      where: { id: interaction.user.id },
+      update: {},
+      create: {
+        id: interaction.user.id,
+        username: interaction.user.username,
+        avatar: interaction.user.avatar,
+        balance: 0,
+        totalSpent: 0,
+        blacklisted: false
+      }
+    });
+
     // 대기 중인 결제 생성
     const payment = await prisma.payment.create({
       data: {
@@ -69,7 +86,11 @@ export async function handleModalSubmit(interaction, client, prisma) {
         amount,
         points: amount,
         senderName: senderName.trim(),
-        status: 'PENDING'
+        status: 'PENDING',
+        // 나중에(자동충전 완료/만료 시) 이 신청 응답 메시지를 수정하기 위해
+        // interaction.token을 저장해둔다. 15분간만 유효하지만 자동충전
+        // 윈도우(5분)보다 여유 있게 커버된다.
+        interactionToken: interaction.token
       }
     });
 

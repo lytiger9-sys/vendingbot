@@ -1,5 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
 import { upsertChargeLog } from './paymentLogger.js';
+import { markDepositReplyCompleted } from './depositReplyEditor.js';
 import {
   extractDepositAmount,
   getAutoChargeWindowCutoff,
@@ -47,10 +48,20 @@ async function completeAutoCharge(prisma, candidate, cutoff) {
       return null;
     }
 
-    await tx.user.update({
+    // modalHandler.js에서 User를 미리 upsert해두는 게 정석 경로지만,
+    // 레거시 Payment나 다른 경로로 생성된 케이스까지 방어하기 위해
+    // 여기서도 update 대신 upsert를 사용한다 (P2025 방지 최종 안전망).
+    await tx.user.upsert({
       where: { id: candidate.userId },
-      data: {
+      update: {
         balance: { increment: candidate.points },
+      },
+      create: {
+        id: candidate.userId,
+        username: candidate.senderName || 'Unknown',
+        balance: candidate.points,
+        totalSpent: 0,
+        blacklisted: false,
       },
     });
 
@@ -88,11 +99,7 @@ export async function processPayment(data, deps = {}) {
     throw new Error('processPayment requires a prisma instance');
   }
 
-  const fallbackContent = [data?.title, data?.body]
-    .map(value => String(value ?? '').trim())
-    .filter(Boolean)
-    .join('\n');
-  const content = String(data?.content ?? data?.text ?? fallbackContent ?? '');
+  const content = String(data?.content ?? data?.text ?? '');
   const amount = extractDepositAmount(content);
 
   if (amount === null) {
@@ -161,6 +168,7 @@ export async function processPayment(data, deps = {}) {
 
       await upsertChargeLog(client, prisma, completedPayment);
       await sendAutoChargeDm(completedPayment);
+      await markDepositReplyCompleted(completedPayment);
 
       return completedPayment;
     } catch (error) {
