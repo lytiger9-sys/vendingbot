@@ -30,15 +30,20 @@ export default {
       });
     }
 
-    // 2. 유저 데이터베이스 조회
-    const user = await prisma.user.findUnique({ where: { id: targetUser.id } });
-
-    if (!user) {
-      return interaction.reply({ 
-        content: "⚠️ 데이터베이스에 해당 유저 정보가 존재하지 않습니다.", 
-        ephemeral: true 
-      });
-    }
+    // 2. 유저 데이터베이스 조회 (없으면 생성 - 웹 대시보드 로그인 없이
+    //    디스코드 명령어만 쓴 유저는 User 레코드가 아예 없을 수 있음)
+    const user = await prisma.user.upsert({
+      where: { id: targetUser.id },
+      update: {},
+      create: {
+        id: targetUser.id,
+        username: targetUser.username,
+        avatar: targetUser.avatar,
+        balance: 0,
+        totalSpent: 0,
+        blacklisted: false
+      }
+    });
 
     const newBalance = user.balance + amount;
 

@@ -1,11 +1,16 @@
 ﻿import { Events } from 'discord.js';
 import { prisma } from '../index.js';
 import { handleButton, handleSelectMenu, handleModalSubmit } from './handlers/index.js';
+import { ensureUserExists } from '../utils/ensureUser.js';
 
 export default {
   name: Events.InteractionCreate,
   once: false,
   async execute(interaction, client) {
+    // 모든 상호작용 진입 시, 이 유저의 User 레코드가 DB에 존재하는지 먼저 보장한다.
+    // (웹 대시보드 로그인 없이 디스코드에서만 활동하는 유저 대비용 최종 안전망)
+    await ensureUserExists(prisma, interaction.user);
+
     // 슬래시 명령어
     if (interaction.isChatInputCommand()) {
       const command = client.slashCommands.get(interaction.commandName);
@@ -39,4 +44,3 @@ export default {
     }
   }
 };
-
