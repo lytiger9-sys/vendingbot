@@ -27,6 +27,11 @@ client.slashCommands = new Collection();
 
 const app = express();
 
+if (process.env.NODE_ENV === 'production') {
+  // HTTPS를 프록시가 종료하는 배포 환경에서도 secure 세션 쿠키를 정상 처리합니다.
+  app.set('trust proxy', 1);
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
