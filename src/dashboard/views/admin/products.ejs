@@ -105,9 +105,15 @@
     <div class="modal">
       <div class="modal-header">⚡ 재고 관리</div>
       <input type="hidden" id="stockProductId">
+
+      <div class="input-group">
+        <label class="input-label">현재 재고 목록 (<span id="stockCount">0</span>개)</label>
+        <div id="stockList" style="max-height: 220px; overflow-y: auto; border: 1px solid #333; border-radius: 6px; padding: 8px;"></div>
+      </div>
+
       <div class="input-group">
         <label class="input-label">새 재고 입력 (줄바꿈으로 구분)</label>
-        <textarea id="stockContent" class="input" rows="10" placeholder="재고1&#10;재고2&#10;재고3"></textarea>
+        <textarea id="stockContent" class="input" rows="6" placeholder="재고1&#10;재고2&#10;재고3"></textarea>
       </div>
       <div class="modal-footer">
         <button onclick="closeStockModal()" class="btn btn-outline">닫기</button>
@@ -117,17 +123,19 @@
   </div>
 
     <script>
+    let categoriesData = [];
+
     async function loadCategories() {
       const r = await fetch('/api/products');
-      const categories = await r.json();
+      categoriesData = await r.json();
       const list = document.getElementById('categoryList');
       
-      if (categories.length === 0) {
+      if (categoriesData.length === 0) {
         list.innerHTML = '<div class="card"><div class="text-muted text-center py-8">카테고리가 없습니다.</div></div>';
         return;
       }
 
-      list.innerHTML = categories.map(cat => `
+      list.innerHTML = categoriesData.map(cat => `
         <div class="card mb-6">
           <div class="card-header flex justify-between align-center">
             <span>📁 ${cat.name}</span>
@@ -282,9 +290,44 @@
     function openStockModal(id) {
       document.getElementById('stockProductId').value = id;
       document.getElementById('stockContent').value = '';
+      renderStockList(id);
       document.getElementById('stockModal').classList.remove('hidden');
       document.getElementById('stockModal').classList.add('active');
     }
+
+    function renderStockList(productId) {
+      const product = categoriesData
+        .flatMap(cat => cat.products)
+        .find(p => p.id === productId);
+
+      const stocks = product?.stocks || [];
+      document.getElementById('stockCount').textContent = stocks.length;
+
+      const listEl = document.getElementById('stockList');
+      if (stocks.length === 0) {
+        listEl.innerHTML = '<div class="text-muted" style="padding: 8px;">등록된 재고가 없습니다.</div>';
+        return;
+      }
+
+      listEl.innerHTML = stocks.map(s => `
+        <div class="flex justify-between align-center" style="padding: 6px 4px; border-bottom: 1px solid #2a2a2a;">
+          <span style="word-break: break-all; margin-right: 8px;">${s.content}</span>
+          <button onclick="deleteStockItem('${s.id}', '${productId}')" class="text-danger hover:underline" style="flex-shrink: 0;">삭제</button>
+        </div>
+      `).join('');
+    }
+
+    async function deleteStockItem(stockId, productId) {
+      if (!confirm('이 재고를 삭제하시겠습니까?')) return;
+
+      await fetch(`/api/products/stocks/${stockId}`, { method: 'DELETE' });
+      showToast('재고가 삭제되었습니다.', 'success');
+
+      // 목록/테이블 갱신
+      await loadCategories();
+      renderStockList(productId);
+    }
+
     function closeStockModal() { 
       document.getElementById('stockModal').classList.add('hidden');
       document.getElementById('stockModal').classList.remove('active');
@@ -302,8 +345,9 @@
         });
       }
       showToast(`${stocks.length}개의 재고가 추가되었습니다.`, 'success');
-      closeStockModal();
-      loadCategories();
+      document.getElementById('stockContent').value = '';
+      await loadCategories();
+      renderStockList(id);
     }
 
     loadCategories();
