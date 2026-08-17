@@ -121,14 +121,9 @@ global.sendUserDM = async (userId, options) => {
   }
 };
 
-const PORT = Number.parseInt(process.env.PORT || '3000', 10) || 3000;
+const PORT = process.env.PORT || 3000;
 
 async function start() {
-  // Render는 외부 서비스 연결이 끝나기 전에 포트를 감지하므로 서버를 먼저 엽니다.
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log('Server listening on port ' + PORT);
-  });
-
   try {
     await prisma.$connect();
     console.log('Database connected');
@@ -142,7 +137,10 @@ async function start() {
     console.log('Bot logged in');
 
     app.locals.client = client;
-    console.log('Bot services initialized');
+
+    app.listen(PORT, () => {
+      console.log('Server running on port ' + PORT);
+    });
   } catch (error) {
     console.error('Failed to start:', error);
     process.exit(1);
