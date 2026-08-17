@@ -6,6 +6,7 @@ import session from 'express-session';
 import passport from 'passport';
 import { Strategy } from 'passport-discord';
 import { PrismaSessionStore } from './utils/prismaSessionStore.js';
+import { csrfProtection, csrfToken } from './dashboard/middleware/csrf.js';
 import { startPushbulletListener } from './utils/pushbulletListener.js';
 import { startPaymentExpiryScheduler, stopPaymentExpiryScheduler } from './utils/paymentExpiryScheduler.js';
 
@@ -41,8 +42,16 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000
+  }
 }));
+
+app.use(csrfToken);
+app.use(csrfProtection);
 
 app.use(passport.initialize());
 app.use(passport.session());

@@ -1,3 +1,46 @@
+const nativeFetch = window.fetch.bind(window);
+let csrfTokenPromise;
+
+async function getCsrfToken() {
+  if (!csrfTokenPromise) {
+    csrfTokenPromise = nativeFetch('/auth/csrf', {
+      credentials: 'same-origin',
+    })
+      .then(response => {
+        if (!response.ok) throw new Error('CSRF 토큰을 가져오지 못했습니다.');
+        return response.json();
+      })
+      .then(data => data.csrfToken)
+      .catch(error => {
+        csrfTokenPromise = null;
+        throw error;
+      });
+  }
+  return csrfTokenPromise;
+}
+
+window.fetch = async function csrfAwareFetch(input, init = {}) {
+  const request = new Request(input, init);
+  const method = request.method.toUpperCase();
+  const requestUrl = new URL(request.url, window.location.href);
+  const isSameOrigin = requestUrl.origin === window.location.origin;
+  const isUnsafeMethod = !['GET', 'HEAD', 'OPTIONS'].includes(method);
+
+  if (!isSameOrigin || !isUnsafeMethod) {
+    return nativeFetch(input, init);
+  }
+
+  const token = await getCsrfToken();
+  const headers = new Headers(request.headers);
+  headers.set('X-CSRF-Token', token);
+
+  return nativeFetch(input, {
+    ...init,
+    headers,
+    credentials: init.credentials || 'same-origin',
+  });
+};
+
 async function api(url, opts = {}) {
   try {
     const r = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...opts.headers } });
