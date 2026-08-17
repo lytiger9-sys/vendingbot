@@ -86,6 +86,9 @@
             <div class="input-group">
               <input type="text" id="chargeLogChannel" placeholder="충전 로그 채널 ID" class="input">
             </div>
+            <div class="input-group">
+              <input type="text" id="restockLogChannel" placeholder="입고 로그 채널 ID" class="input">
+            </div>
           </div>
 
           <div class="card-action-row">
@@ -172,6 +175,7 @@
       "REVIEW_CHANNEL_ID": "reviewLogChannel",
       "PURCHASE_LOG_CHANNEL": "purchaseLogChannel",
       "CHARGE_LOG_CHANNEL": "chargeLogChannel",
+      "RESTOCK_LOG_CHANNEL": "restockLogChannel",
       "SERVER_LINK": "serverLink"
     };
 
@@ -238,6 +242,7 @@
         { key: "REVIEW_CHANNEL_ID", value: document.getElementById("reviewLogChannel").value },
         { key: "PURCHASE_LOG_CHANNEL", value: document.getElementById("purchaseLogChannel").value },
         { key: "CHARGE_LOG_CHANNEL", value: document.getElementById("chargeLogChannel").value },
+        { key: "RESTOCK_LOG_CHANNEL", value: document.getElementById("restockLogChannel").value },
       ];
 
       const requests = channelMappings

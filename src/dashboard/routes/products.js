@@ -127,12 +127,17 @@ router.get('/restock-candidates', isAuthenticated, isAdmin, async (req, res) => 
 // Send a selected restock log and advance each selected product's restock checkpoint.
 router.post('/restock-log', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    const { productIds, channelId } = req.body;
+    const { productIds } = req.body;
     if (!Array.isArray(productIds) || productIds.length === 0) {
       return res.status(400).json({ error: '제품을 하나 이상 선택해주세요.' });
     }
-    if (!/^\d{15,22}$/.test(String(channelId || ''))) {
-      return res.status(400).json({ error: '올바른 Discord 채널 ID를 입력해주세요.' });
+
+    const channelSetting = await prisma.systemSetting.findUnique({
+      where: { key: 'RESTOCK_LOG_CHANNEL' },
+    });
+    const channelId = String(channelSetting?.value || '').trim();
+    if (!/^\d{15,22}$/.test(channelId)) {
+      return res.status(400).json({ error: '설정 페이지에서 입고 로그 채널 ID를 먼저 설정해주세요.' });
     }
 
     const products = await prisma.product.findMany({
