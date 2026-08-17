@@ -8,10 +8,20 @@ export function isAuthenticated(req, res, next) {
 }
 
 export async function isServerAdmin(req) {
-  const serverId = process.env.SERVER_ID;
+  const serverId = process.env.SERVER_ID?.trim();
+  const legacyAdminId = process.env.ADMIN_USER_ID?.trim();
   const client = req.app?.locals?.client;
 
-  if (!req.user || !serverId || !client?.isReady?.()) {
+  if (!req.user) {
+    return false;
+  }
+
+  // 기존 배포 환경의 관리자 계정 설정을 호환합니다.
+  if (legacyAdminId && req.user.id === legacyAdminId) {
+    return true;
+  }
+
+  if (!serverId || !client?.isReady?.()) {
     return false;
   }
 
