@@ -1,4 +1,10 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import {
+  ContainerBuilder,
+  MessageFlags,
+  SeparatorBuilder,
+  SlashCommandBuilder,
+  TextDisplayBuilder,
+} from "discord.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -14,16 +20,24 @@ export default {
     
     const user = await prisma.user.findUnique({ where: { id: targetUser.id } });
     
-    const embed = new EmbedBuilder()
-      .setTitle("잔액 조회")
-      .setColor("#5865F2")
-      .addFields(
-        { name: "유저", value: targetUser.tag, inline: true },
-        { name: "잔액", value: `${(user?.balance || 0).toLocaleString()}원`, inline: true },
-        { name: "누적구매", value: `${(user?.totalSpent || 0).toLocaleString()}원`, inline: true }
+    const container = new ContainerBuilder()
+      .setAccentColor(0x5865F2)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('## 잔액 조회'),
       )
-      .setTimestamp();
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `**유저:** ${targetUser.tag}\n` +
+          `**잔액:** ${(user?.balance || 0).toLocaleString()}원\n` +
+          `**누적 구매:** ${(user?.totalSpent || 0).toLocaleString()}원`,
+        ),
+      );
     
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+      ephemeral: true,
+    });
   }
 };

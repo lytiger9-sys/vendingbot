@@ -82,7 +82,7 @@ export default {
     try {
       await targetChannel.send({ 
         components: [container],
-        flags: [MessageFlags.IsComponentsV2]
+        flags: MessageFlags.IsComponentsV2
       });
 
       await interaction.editReply({ content: `${targetChannel} 채널에 레이아웃 순서가 조정된 신형 임베드가 게시되었습니다.` });

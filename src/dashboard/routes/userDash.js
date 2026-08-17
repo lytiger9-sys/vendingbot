@@ -1,6 +1,6 @@
 import express from 'express';
 import { prisma } from '../../index.js';
-import { isAuthenticated } from '../middleware/auth.js';
+import { isAuthenticated, isServerAdmin } from '../middleware/auth.js';
 import { sendReviewWebhook } from '../../utils/reviewWebhook.js';
 
 const router = express.Router();
@@ -20,7 +20,7 @@ router.use((req, res, next) => {
 
 // User dashboard
 router.get('/', isAuthenticated, async (req, res) => {
-  const isAdminUser = req.user.id === process.env.ADMIN_USER_ID;
+  const isAdminUser = await isServerAdmin(req);
   res.render('user/dashboard', {
     user: req.user,
     isAdmin: isAdminUser
@@ -34,7 +34,7 @@ router.get('/purchases-page', isAuthenticated, async (req, res) => {
 
 // 웹에서 후기 작성하는 전용 페이지 (일반 대시보드와 별개)
 router.get('/review', isAuthenticated, async (req, res) => {
-  const isAdminUser = req.user.id === process.env.ADMIN_USER_ID;
+  const isAdminUser = await isServerAdmin(req);
   res.render('user/review', {
     user: req.user,
     isAdmin: isAdminUser

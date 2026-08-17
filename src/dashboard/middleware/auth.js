@@ -1,3 +1,5 @@
+import { PermissionFlagsBits } from 'discord.js';
+
 export function isAuthenticated(req, res, next) {
   if (req.user) {
     return next();
@@ -5,10 +7,33 @@ export function isAuthenticated(req, res, next) {
   res.redirect('/auth/discord');
 }
 
-export function isAdmin(req, res, next) {
-  if (req.user && req.user.id === process.env.ADMIN_USER_ID) {
+export async function isServerAdmin(req) {
+  const serverId = process.env.SERVER_ID;
+  const client = req.app?.locals?.client;
+
+  if (!req.user || !serverId || !client?.isReady?.()) {
+    return false;
+  }
+
+  try {
+    const guild = await client.guilds.fetch(serverId);
+    const member = await guild.members.fetch(req.user.id).catch(() => null);
+
+    if (!member) {
+      return false;
+    }
+
+    return member.permissions.has(PermissionFlagsBits.Administrator);
+  } catch (error) {
+    console.error('관리자 권한 확인 오류:', error);
+    return false;
+  }
+}
+
+export async function isAdmin(req, res, next) {
+  if (await isServerAdmin(req)) {
     return next();
   }
-  // Admin이 아니면 일반 대시보드로 리다이렉트
+
   res.redirect('/');
 }

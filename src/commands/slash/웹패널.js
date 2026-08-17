@@ -49,14 +49,14 @@ export default {
       // components 배열에 container를 담고, 신형 UI 플래그(IsComponentsV2)를 활성화합니다.
       await interaction.editReply({
         components: [container],
-        flags: [MessageFlags.IsComponentsV2]
+        flags: MessageFlags.IsComponentsV2
       });
 
       // (선택 사항) 만약 답변이 아닌 새 메시지로 보내고 싶다면 아래 코드를 사용하세요.
       /*
       await interaction.channel.send({
         components: [container],
-        flags: [MessageFlags.IsComponentsV2]
+        flags: MessageFlags.IsComponentsV2
       });
       */
     } catch (error) {

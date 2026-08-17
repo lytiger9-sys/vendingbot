@@ -1,29 +1,58 @@
-import { EmbedBuilder } from 'discord.js';
+import {
+  ContainerBuilder,
+  MessageFlags,
+  SeparatorBuilder,
+  TextDisplayBuilder,
+} from 'discord.js';
 
 async function getSetting(prisma, key) {
   const setting = await prisma.systemSetting.findUnique({ where: { key } });
   return setting?.value?.trim() || '';
 }
 
-function buildEmbed(options) {
-  const embed = new EmbedBuilder()
-    .setTitle(options.title)
-    .setColor(options.color ?? 0x5865F2)
-    .setTimestamp();
+function buildContainer({ title, description, color, fields, footer }) {
+  const container = new ContainerBuilder()
+    .setAccentColor(color ?? 0x5865F2)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(`## ${title}`),
+    );
 
-  if (options.description) {
-    embed.setDescription(options.description);
+  if (description) {
+    container
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(description),
+      );
   }
 
-  if (Array.isArray(options.fields) && options.fields.length > 0) {
-    embed.addFields(options.fields);
+  if (Array.isArray(fields) && fields.length > 0) {
+    const fieldText = fields
+      .map(({ name, value }) => `**${name}:** ${value}`)
+      .join('\n');
+
+    container
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(fieldText),
+      );
   }
 
-  if (options.footer) {
-    embed.setFooter({ text: options.footer });
+  if (footer) {
+    container
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`*${footer}*`),
+      );
   }
 
-  return embed;
+  return container;
+}
+
+function v2Payload(container) {
+  return {
+    components: [container],
+    flags: MessageFlags.IsComponentsV2,
+  };
 }
 
 export async function sendPaymentLog(client, prisma, channelSettingKey, options) {
@@ -42,7 +71,7 @@ export async function sendPaymentLog(client, prisma, channelSettingKey, options)
       return false;
     }
 
-    await channel.send({ embeds: [buildEmbed(options)] });
+    await channel.send(v2Payload(buildContainer(options)));
     return true;
   } catch (error) {
     console.error('Payment log error:', error);
@@ -58,28 +87,30 @@ const CHARGE_STATUS_INFO = {
   FAILED:    { text: '❌ 자동충전 실패',  color: 0xE74C3C },
 };
 
-function buildChargeEmbed(payment) {
-  const info = CHARGE_STATUS_INFO[payment.status] || { text: payment.status, color: 0x5865F2 };
+function buildChargeContainer(payment) {
+  const info = CHARGE_STATUS_INFO[payment.status] || {
+    text: payment.status,
+    color: 0x5865F2,
+  };
   const typeLabel = payment.type === 'MANUAL' ? '수동충전' : '자동충전';
 
-  return new EmbedBuilder()
-    .setTitle(`💰 충전 요청 - ${typeLabel}`)
-    .setColor(info.color)
-    .addFields(
-      { name: '유저', value: `<@${payment.userId}>`, inline: true },
-      { name: '입금자명', value: payment.senderName || '-', inline: true },
-      { name: '금액', value: `${payment.amount.toLocaleString()}원`, inline: true },
-      { name: '상태', value: info.text, inline: true }
-    )
-    .setFooter({ text: `Payment ID: ${payment.id}` })
-    .setTimestamp();
+  return buildContainer({
+    title: `💰 충전 요청 - ${typeLabel}`,
+    color: info.color,
+    fields: [
+      { name: '유저', value: `<@${payment.userId}>` },
+      { name: '입금자명', value: payment.senderName || '-' },
+      { name: '금액', value: `${Number(payment.amount || 0).toLocaleString()}원` },
+      { name: '상태', value: info.text },
+    ],
+    footer: `Payment ID: ${payment.id}`,
+  });
 }
 
 /**
  * 충전 요청(Payment) 1건당 로그 메시지 1개를 유지한다.
- * - 처음 호출되면 CHARGE_LOG_CHANNEL에 새 메시지를 보내고 메시지 ID를 DB에 저장한다.
- * - 이후 상태가 바뀔 때 다시 호출하면, 저장된 메시지를 찾아 내용만 수정한다.
- *   (메시지가 삭제되었거나 찾을 수 없으면 새로 하나 보낸다.)
+ * 처음 호출되면 새 Components V2 메시지를 보내고, 이후 상태가 바뀌면
+ * 같은 메시지를 Components V2 payload로 수정한다.
  */
 export async function upsertChargeLog(client, prisma, payment) {
   try {
@@ -91,7 +122,7 @@ export async function upsertChargeLog(client, prisma, payment) {
     const channel = await client.channels.fetch(channelId).catch(() => null);
     if (!channel || typeof channel.isTextBased !== 'function' || !channel.isTextBased()) return;
 
-    const embed = buildChargeEmbed(payment);
+    const payload = v2Payload(buildChargeContainer(payment));
 
     if (payment.logChannelId && payment.logMessageId) {
       try {
@@ -102,7 +133,7 @@ export async function upsertChargeLog(client, prisma, payment) {
         if (existingChannel) {
           const existingMessage = await existingChannel.messages.fetch(payment.logMessageId).catch(() => null);
           if (existingMessage) {
-            await existingMessage.edit({ embeds: [embed] });
+            await existingMessage.edit(payload);
             return;
           }
         }
@@ -111,12 +142,14 @@ export async function upsertChargeLog(client, prisma, payment) {
       }
     }
 
-    const sentMessage = await channel.send({ embeds: [embed] });
+    const sentMessage = await channel.send(payload);
     await prisma.payment.update({
       where: { id: payment.id },
-      data: { logChannelId: channel.id, logMessageId: sentMessage.id }
+      data: { logChannelId: channel.id, logMessageId: sentMessage.id },
     });
   } catch (error) {
     console.error('충전 로그 처리 오류:', error);
   }
 }
+
+export { buildContainer };

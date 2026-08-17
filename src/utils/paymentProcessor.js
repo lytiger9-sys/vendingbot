@@ -1,4 +1,4 @@
-import { EmbedBuilder } from 'discord.js';
+import { ContainerBuilder, MessageFlags, SeparatorBuilder, TextDisplayBuilder } from 'discord.js';
 import { upsertChargeLog } from './paymentLogger.js';
 import { markDepositReplyCompleted } from './depositReplyEditor.js';
 import {
@@ -78,17 +78,24 @@ function sendAutoChargeDm(payment) {
     return;
   }
 
-  const embed = new EmbedBuilder()
-    .setTitle('자동충전 완료')
-    .setColor('#00FF00')
-    .setDescription('입금이 정상 확인되어 자동충전이 완료되었습니다.')
-    .addFields(
-      { name: '입금자명', value: `\`${payment.senderName}\``, inline: true },
-      { name: '충전 포인트', value: `\`+${formatAmount(payment.points)}P\``, inline: true },
+  const container = new ContainerBuilder()
+    .setAccentColor(0x00FF00)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent('## 자동충전 완료'),
     )
-    .setTimestamp();
+    .addSeparatorComponents(new SeparatorBuilder())
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        '입금이 정상 확인되어 자동충전이 완료되었습니다.\n\n' +
+        `**입금자명:** <code>${payment.senderName}</code>\n` +
+        `**충전 포인트:** <code>+${formatAmount(payment.points)}P</code>`,
+      ),
+    );
 
-  return global.sendUserDM(payment.userId, { embeds: [embed] });
+  return global.sendUserDM(payment.userId, {
+    components: [container],
+    flags: MessageFlags.IsComponentsV2,
+  });
 }
 
 export async function processPayment(data, deps = {}) {

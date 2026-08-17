@@ -1,4 +1,11 @@
-import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
+import {
+  ContainerBuilder,
+  MessageFlags,
+  SeparatorBuilder,
+  SlashCommandBuilder,
+  TextDisplayBuilder,
+  PermissionFlagsBits,
+} from 'discord.js';
 import { upsertChargeLog } from '../../utils/paymentLogger.js';
 
 export default {
@@ -82,21 +89,33 @@ export default {
 
     const absAmount = Math.abs(amount).toLocaleString();
 
-    const embed = new EmbedBuilder()
-      .setTitle(isDeduction ? "💸 수동 차감 완료" : "🏦 수동 충전 완료")
-      .setColor(isDeduction ? "#FF3333" : "#33FF77")
-      .setDescription(
-        isDeduction 
-          ? `\`${targetUser.tag}\`님의 잔액에서 **${absAmount}원**을 차감했습니다.`
-          : `\`${targetUser.tag}\`님의 잔액에 **${absAmount}원**을 충전했습니다.`
+    const container = new ContainerBuilder()
+      .setAccentColor(isDeduction ? 0xFF3333 : 0x33FF77)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `## ${isDeduction ? '💸 수동 차감 완료' : '🏦 수동 충전 완료'}`,
+        ),
       )
-      .addFields(
-        { name: "대상", value: `<@${targetUser.id}>`, inline: true },
-        { name: isDeduction ? "차감액" : "충전액", value: `\`${amount > 0 ? '+' : ''}${amount.toLocaleString()}원\``, inline: true },
-        { name: "최종 잔액", value: `\`${newBalance.toLocaleString()}원\``, inline: true }
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          isDeduction
+            ? `<@${targetUser.id}>님의 잔액에서 **${absAmount}원**을 차감했습니다.`
+            : `<@${targetUser.id}>님의 잔액에 **${absAmount}원**을 충전했습니다.`,
+        ),
       )
-      .setTimestamp();
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `**대상:** <@${targetUser.id}>\n` +
+          `**${isDeduction ? '차감액' : '충전액'}:** ${amount > 0 ? '+' : ''}${amount.toLocaleString()}원\n` +
+          `**최종 잔액:** ${newBalance.toLocaleString()}원`,
+        ),
+      );
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+    });
   }
 };

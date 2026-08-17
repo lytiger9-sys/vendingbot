@@ -38,7 +38,10 @@
         <main class="main-content">
       <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
         <h1 class="title-md">제품 관리</h1>
-        <button onclick="openCategoryModal()" class="btn btn-primary" style="margin-top: 8px;">📁 카테고리 추가</button>
+        <div class="flex gap-2" style="margin-top: 8px;">
+          <button onclick="openRestockLogModal()" class="btn btn-success">📢 입고 로그</button>
+          <button onclick="openCategoryModal()" class="btn btn-primary">📁 카테고리 추가</button>
+        </div>
       </div>
 
       <div id="categoryList">
@@ -62,7 +65,27 @@
     </div>
   </div>
 
-    <!-- 제품 추가/수정 모달 -->
+    <!-- 입고 로그 모달 -->
+  <div id="restockLogModal" class="modal-overlay hidden">
+    <div class="modal" style="max-width: 620px;">
+      <div class="modal-header">📢 입고 로그 보내기</div>
+      <p class="text-muted" style="margin: 0 0 14px;">마지막 입고 로그 이후 관리자가 직접 변경한 제품만 표시됩니다. 구매로 인한 재고 변화는 제외됩니다.</p>
+      <div id="restockCandidateList" style="max-height: 280px; overflow-y: auto; border: 1px solid #333; border-radius: 6px; padding: 8px;">
+        <div class="text-muted" style="padding: 8px;">로딩중...</div>
+      </div>
+      <div class="input-group" style="margin-top: 16px;">
+        <label class="input-label" for="restockChannelId">입고 로그를 보낼 채널 ID</label>
+        <input type="text" id="restockChannelId" class="input" inputmode="numeric" placeholder="예: 123456789012345678">
+        <small class="text-muted">입력한 채널 ID는 이 브라우저의 로컬 저장소에 저장됩니다.</small>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeRestockLogModal()" class="btn btn-outline">취소</button>
+        <button onclick="sendRestockLog()" class="btn btn-success">입고 메시지 보내기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 제품 추가/수정 모달 -->
   <div id="productModal" class="modal-overlay hidden">
     <div class="modal" style="max-width: 550px;">
       <div class="modal-header" id="productModalTitle">📦 제품 추가</div>
@@ -124,6 +147,18 @@
 
     <script>
     let categoriesData = [];
+    let restockCandidates = [];
+    const RESTOCK_CHANNEL_STORAGE_KEY = 'vendingbot.restockLogChannelId';
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[char]));
+    }
 
     async function loadCategories() {
       const r = await fetch('/api/products');
@@ -179,6 +214,73 @@
           </div>
         </div>
       `).join('');
+    }
+
+    async function openRestockLogModal() {
+      document.getElementById('restockChannelId').value = localStorage.getItem(RESTOCK_CHANNEL_STORAGE_KEY) || '';
+      document.getElementById('restockLogModal').classList.remove('hidden');
+      document.getElementById('restockLogModal').classList.add('active');
+      await loadRestockCandidates();
+    }
+
+    function closeRestockLogModal() {
+      document.getElementById('restockLogModal').classList.add('hidden');
+      document.getElementById('restockLogModal').classList.remove('active');
+    }
+
+    async function loadRestockCandidates() {
+      const list = document.getElementById('restockCandidateList');
+      list.innerHTML = '<div class="text-muted" style="padding: 8px;">로딩중...</div>';
+      try {
+        const response = await fetch('/api/products/restock-candidates');
+        const candidates = await response.json();
+        if (!response.ok) throw new Error(candidates.error || '입고 후보를 불러오지 못했습니다.');
+        restockCandidates = candidates;
+
+        if (candidates.length === 0) {
+          list.innerHTML = '<div class="text-muted" style="padding: 8px;">새로운 관리자 재고 변경이 있는 제품이 없습니다.</div>';
+          return;
+        }
+
+        list.innerHTML = candidates.map(product => `
+          <label class="flex align-center" style="gap: 10px; padding: 9px 6px; border-bottom: 1px solid #2a2a2a; cursor: pointer;">
+            <input type="checkbox" class="restock-product-checkbox" value="${escapeHtml(product.id)}" checked>
+            <span style="flex: 1;">${escapeHtml(product.name)}</span>
+            <span class="text-muted">${product.isFixed ? '고정 제품 · 신규 등록' : `재고 ${product.stockCount}개`}</span>
+          </label>
+        `).join('');
+      } catch (error) {
+        restockCandidates = [];
+        list.innerHTML = `<div class="text-danger" style="padding: 8px;">${escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    async function sendRestockLog() {
+      const channelId = document.getElementById('restockChannelId').value.trim();
+      const productIds = Array.from(document.querySelectorAll('.restock-product-checkbox:checked'))
+        .map(input => input.value);
+
+      if (!/^\d{15,22}$/.test(channelId)) {
+        return showToast('올바른 Discord 채널 ID를 입력하세요.', 'warning');
+      }
+      if (productIds.length === 0) {
+        return showToast('입고 메시지에 포함할 제품을 하나 이상 선택하세요.', 'warning');
+      }
+
+      localStorage.setItem(RESTOCK_CHANNEL_STORAGE_KEY, channelId);
+      const response = await fetch('/api/products/restock-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelId, productIds }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        return showToast(result.error || '입고 메시지를 보내지 못했습니다.', 'error');
+      }
+
+      closeRestockLogModal();
+      showToast(`${result.sentProductNames.length}개 제품의 입고 메시지를 보냈습니다.`, 'success');
+      await loadCategories();
     }
 
     // 카테고리 관련 - 커스텀 모달 사용

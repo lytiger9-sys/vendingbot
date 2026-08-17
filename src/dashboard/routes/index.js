@@ -1,6 +1,6 @@
 import express from 'express';
 import { prisma } from '../../index.js';
-import { isAuthenticated, isAdmin } from '../middleware/auth.js';
+import { isAuthenticated, isAdmin, isServerAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
     return res.redirect('/auth/discord');
   }
   
-  const isAdminUser = req.user.id === process.env.ADMIN_USER_ID;
+  const isAdminUser = await isServerAdmin(req);
   
   // 관리자면 admin 대시보드로
   if (isAdminUser) {

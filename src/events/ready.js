@@ -1,4 +1,12 @@
-import { Events, REST, Routes, EmbedBuilder } from 'discord.js';
+import {
+  ContainerBuilder,
+  Events,
+  MessageFlags,
+  REST,
+  Routes,
+  SeparatorBuilder,
+  TextDisplayBuilder,
+} from 'discord.js';
 import { prisma } from '../index.js';
 
 export default {
@@ -29,20 +37,25 @@ export default {
         if (devUserId) {
           const devUser = await client.users.fetch(devUserId).catch(() => null);
           if (devUser) {
-            const embed = new EmbedBuilder()
-              .setTitle('Slash commands registered')
-              .setColor('#00FF00')
-              .setDescription(`Registered ${commandData.length} slash commands.`)
-              .addFields(
-                ...commandData.map(cmd => ({
-                  name: `/${cmd.name}`,
-                  value: cmd.description || 'No description',
-                  inline: true
-                }))
+            const commandList = commandData
+              .map(cmd => `**/${cmd.name}:** ${cmd.description || 'No description'}`)
+              .join('\n');
+            const container = new ContainerBuilder()
+              .setAccentColor(0x00FF00)
+              .addTextDisplayComponents(
+                new TextDisplayBuilder().setContent('## Slash commands registered'),
               )
-              .setTimestamp();
+              .addSeparatorComponents(new SeparatorBuilder())
+              .addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(
+                  `Registered ${commandData.length} slash commands.\n\n${commandList}`,
+                ),
+              );
 
-            await devUser.send({ embeds: [embed] });
+            await devUser.send({
+              components: [container],
+              flags: MessageFlags.IsComponentsV2,
+            });
           }
         }
       } catch (devError) {

@@ -34,10 +34,13 @@ model Product {
   isFixed      Boolean   @default(false)
   fixedContent String?
   discountRate Int       @default(0)
-  categoryId   String    @db.ObjectId
-  category     Category  @relation(fields: [categoryId], references: [id])
-  stocks       Stock[]
-  receipts     Receipt[]
+  categoryId          String             @db.ObjectId
+  category            Category           @relation(fields: [categoryId], references: [id])
+  stocks              Stock[]
+  receipts            Receipt[]
+  inventoryChanges    InventoryChange[]
+  createdAt           DateTime?          @default(now())
+  lastRestockLoggedAt DateTime?
 }
 
 model Stock {
@@ -46,6 +49,17 @@ model Stock {
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   content   String
   isSold    Boolean  @default(false)
+}
+
+model InventoryChange {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId String   @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  delta     Int
+  source    String   @default("ADMIN")
+  createdAt DateTime @default(now())
+
+  @@index([productId, createdAt])
 }
 
 model Payment {

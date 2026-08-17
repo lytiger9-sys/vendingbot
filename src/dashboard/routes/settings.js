@@ -143,7 +143,7 @@ router.post('/embed/test', isAuthenticated, isAdmin, async (req, res) => {
     // ⚠️ 수정 핵심: embeds 배열을 지우고 오직 컴포넌트 V2 단독 전송 구조로 변경
     await channel.send({ 
       components: [container],
-      flags: [MessageFlags.IsComponentsV2]
+      flags: MessageFlags.IsComponentsV2
     });
     
     res.json({ success: true });
