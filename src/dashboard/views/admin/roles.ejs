@@ -42,7 +42,7 @@
 
             <div class="card mb-6">
         <div class="card-header">➕ 새 역할 보상 추가</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: end; gap: 1rem;">
+        <div class="role-form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: end; gap: 1rem;">
           <div class="input-group">
             <label class="input-label">누적 소비 금액 (원)</label>
             <input type="number" id="spentLimit" placeholder="예: 10000" class="input">
@@ -55,7 +55,7 @@
             <label class="input-label">할인률 (%)</label>
             <input type="number" id="discountRate" placeholder="예: 10" class="input" min="0" max="100">
           </div>
-          <button onclick="addRole()" class="btn btn-primary" style="margin-bottom: 0.5rem;">추가하기</button>
+          <button type="button" onclick="addRole()" class="btn btn-primary role-add-button">추가하기</button>
         </div>
       </div>
 

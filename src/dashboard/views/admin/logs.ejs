@@ -46,7 +46,7 @@
 </div>
 
 <div id="paymentsTab" class="card">
-  <div class="flex gap-4 mb-4">
+  <div class="log-search-row flex gap-4 mb-4">
     <select id="paymentStatusFilter" onchange="loadPayments()" class="input" style="width: 150px;">
       <option value="">전체</option>
       <option value="PENDING">대기중</option>
@@ -54,7 +54,7 @@
       <option value="REJECTED">거절</option>
     </select>
     <input type="text" id="paymentSearch" placeholder="검색 (입금자명/유저ID)" class="input">
-    <button onclick="loadPayments()" class="btn btn-primary">검색</button>
+    <button type="button" onclick="loadPayments()" class="btn btn-primary log-search-button">검색</button>
   </div>
   <div class="table-container">
     <table class="table">
@@ -75,9 +75,9 @@
 </div>
 
 <div id="receiptsTab" class="card" style="display: none;">
-  <div class="flex gap-4 mb-4">
+  <div class="log-search-row flex gap-4 mb-4">
     <input type="text" id="receiptSearch" placeholder="검색 (유저ID/제품ID)" class="input">
-    <button onclick="loadReceipts()" class="btn btn-primary">검색</button>
+    <button type="button" onclick="loadReceipts()" class="btn btn-primary log-search-button">검색</button>
   </div>
   <div class="table-container">
     <table class="table">

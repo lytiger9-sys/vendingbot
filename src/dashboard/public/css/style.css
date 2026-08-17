@@ -187,6 +187,7 @@ a {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  white-space: nowrap;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -265,6 +266,22 @@ a {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none !important;
+}
+
+/* 로그 검색 폼: 입력란과 버튼을 같은 높이로 유지하고 버튼 글씨를 한 줄로 표시 */
+.log-search-row {
+  align-items: center;
+}
+
+.log-search-button {
+  flex: 0 0 auto;
+  min-width: 68px;
+}
+
+/* 역할 지급 폼: 추가 버튼 하단을 입력란 하단과 정렬 */
+.role-add-button {
+  align-self: end;
+  margin-bottom: 20px;
 }
 
 /* ===== 제품 아이템 ===== */

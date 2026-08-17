@@ -12,6 +12,8 @@ import {
 import { isAuthenticated, isAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
+const RESTOCK_LOG_CHANNEL_SETTING_KEY = 'RESTOCK_LOG_CHANNEL';
+let restockLogSendInProgress = false;
 
 // Get all categories with products
 router.get('/', async (req, res) => {
@@ -126,13 +128,23 @@ router.get('/restock-candidates', isAuthenticated, isAdmin, async (req, res) => 
 
 // Send a selected restock log and advance each selected product's restock checkpoint.
 router.post('/restock-log', isAuthenticated, isAdmin, async (req, res) => {
+  if (restockLogSendInProgress) {
+    return res.status(409).json({ error: '입고 로그를 이미 전송 중입니다. 잠시 후 다시 확인해주세요.' });
+  }
+
+  restockLogSendInProgress = true;
   try {
-    const { productIds, channelId } = req.body;
+    const { productIds } = req.body;
     if (!Array.isArray(productIds) || productIds.length === 0) {
       return res.status(400).json({ error: '제품을 하나 이상 선택해주세요.' });
     }
-    if (!/^\d{15,22}$/.test(String(channelId || ''))) {
-      return res.status(400).json({ error: '올바른 Discord 채널 ID를 입력해주세요.' });
+
+    const channelSetting = await prisma.systemSetting.findUnique({
+      where: { key: RESTOCK_LOG_CHANNEL_SETTING_KEY },
+    });
+    const channelId = channelSetting?.value?.trim();
+    if (!/^\d{15,22}$/.test(channelId || '')) {
+      return res.status(400).json({ error: '설정 페이지에서 올바른 입고 로그 채널 ID를 먼저 저장해주세요.' });
     }
 
     const products = await prisma.product.findMany({
@@ -192,6 +204,8 @@ router.post('/restock-log', isAuthenticated, isAdmin, async (req, res) => {
   } catch (error) {
     console.error('Failed to send restock log:', error);
     res.status(500).json({ error: '입고 메시지를 보내는 중 오류가 발생했습니다.' });
+  } finally {
+    restockLogSendInProgress = false;
   }
 });
 

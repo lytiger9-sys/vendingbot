@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>관리자 페이지 [24H]</title>
+  <title>최저가 NO.1 발로랜계 킬조이샵 [24H]</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -85,6 +85,9 @@
             </div>
             <div class="input-group">
               <input type="text" id="chargeLogChannel" placeholder="충전 로그 채널 ID" class="input">
+            </div>
+            <div class="input-group">
+              <input type="text" id="restockLogChannel" placeholder="입고 로그 채널 ID" class="input">
             </div>
           </div>
 
@@ -172,6 +175,7 @@
       "REVIEW_CHANNEL_ID": "reviewLogChannel",
       "PURCHASE_LOG_CHANNEL": "purchaseLogChannel",
       "CHARGE_LOG_CHANNEL": "chargeLogChannel",
+      "RESTOCK_LOG_CHANNEL": "restockLogChannel",
       "SERVER_LINK": "serverLink"
     };
 
@@ -238,6 +242,7 @@
         { key: "REVIEW_CHANNEL_ID", value: document.getElementById("reviewLogChannel").value },
         { key: "PURCHASE_LOG_CHANNEL", value: document.getElementById("purchaseLogChannel").value },
         { key: "CHARGE_LOG_CHANNEL", value: document.getElementById("chargeLogChannel").value },
+        { key: "RESTOCK_LOG_CHANNEL", value: document.getElementById("restockLogChannel").value },
       ];
 
       const requests = channelMappings
