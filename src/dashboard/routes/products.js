@@ -147,12 +147,36 @@ router.post('/restock-log', isAuthenticated, isAdmin, async (req, res) => {
       return res.status(400).json({ error: '새로운 관리자 재고 변경이 있는 제품이 없습니다.' });
     }
 
-    const channel = await client.channels.fetch(String(channelId)).catch(() => null);
-    if (!channel || typeof channel.isTextBased !== 'function' || !channel.isTextBased()) {
-      return res.status(400).json({ error: '메시지를 보낼 수 있는 채널을 찾을 수 없습니다.' });
+    if (!client?.isReady?.()) {
+      return res.status(503).json({ error: '디스코드 봇이 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.' });
     }
 
-    await channel.send(buildRestockPayload(eligibleProducts));
+    let channel;
+    try {
+      channel = await client.channels.fetch(String(channelId));
+    } catch (channelError) {
+      console.error('Failed to fetch restock channel:', {
+        channelId,
+        message: channelError.message,
+        code: channelError.code,
+      });
+      return res.status(400).json({ error: '채널을 찾지 못했거나 봇이 해당 채널을 볼 수 없습니다.' });
+    }
+
+    if (!channel || typeof channel.isTextBased !== 'function' || !channel.isTextBased() || typeof channel.send !== 'function') {
+      return res.status(400).json({ error: '메시지를 보낼 수 있는 텍스트 채널이 아닙니다.' });
+    }
+
+    try {
+      await channel.send(buildRestockPayload(eligibleProducts));
+    } catch (sendError) {
+      console.error('Failed to send restock message:', {
+        channelId,
+        message: sendError.message,
+        code: sendError.code,
+      });
+      return res.status(400).json({ error: '메시지를 보내지 못했습니다. 봇의 채널 보기·메시지 보내기 권한을 확인해주세요.' });
+    }
     await Promise.all(eligibleProducts.map(product =>
       prisma.product.update({
         where: { id: product.id },

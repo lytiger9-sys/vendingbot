@@ -256,6 +256,7 @@
     }
 
     async function sendRestockLog() {
+      const button = document.querySelector('#restockLogModal button.btn-success');
       const channelId = document.getElementById('restockChannelId').value.trim();
       const productIds = Array.from(document.querySelectorAll('.restock-product-checkbox:checked'))
         .map(input => input.value);
@@ -267,20 +268,35 @@
         return showToast('입고 메시지에 포함할 제품을 하나 이상 선택하세요.', 'warning');
       }
 
-      localStorage.setItem(RESTOCK_CHANNEL_STORAGE_KEY, channelId);
-      const response = await fetch('/api/products/restock-log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId, productIds }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        return showToast(result.error || '입고 메시지를 보내지 못했습니다.', 'error');
+      if (button) {
+        button.disabled = true;
+        button.textContent = '전송 중...';
       }
 
-      closeRestockLogModal();
-      showToast(`${result.sentProductNames.length}개 제품의 입고 메시지를 보냈습니다.`, 'success');
-      await loadCategories();
+      try {
+        localStorage.setItem(RESTOCK_CHANNEL_STORAGE_KEY, channelId);
+        const response = await fetch('/api/products/restock-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, productIds }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || `입고 메시지 전송에 실패했습니다. (${response.status})`);
+        }
+
+        closeRestockLogModal();
+        showToast(`${result.sentProductNames.length}개 제품의 입고 메시지를 보냈습니다.`, 'success');
+        await loadCategories();
+      } catch (error) {
+        console.error('Restock log send failed:', error);
+        showToast(error.message || '입고 메시지를 보내지 못했습니다.', 'error');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = '입고 메시지 보내기';
+        }
+      }
     }
 
     // 카테고리 관련 - 커스텀 모달 사용
