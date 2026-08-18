@@ -44,13 +44,29 @@ router.post('/categories', isAuthenticated, isAdmin, async (req, res) => {
   }
 });
 
-// Delete category
+// Delete category and all related products/data.
 router.delete('/categories/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    await prisma.category.delete({ where: { id: req.params.id } });
+    await prisma.$transaction(async (tx) => {
+      const products = await tx.product.findMany({
+        where: { categoryId: req.params.id },
+        select: { id: true },
+      });
+      const productIds = products.map(product => product.id);
+
+      if (productIds.length > 0) {
+        await tx.receipt.deleteMany({ where: { productId: { in: productIds } } });
+        await tx.inventoryChange.deleteMany({ where: { productId: { in: productIds } } });
+        await tx.stock.deleteMany({ where: { productId: { in: productIds } } });
+        await tx.product.deleteMany({ where: { id: { in: productIds } } });
+      }
+
+      await tx.category.delete({ where: { id: req.params.id } });
+    });
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete category' });
+    console.error('Failed to delete category:', error);
+    res.status(500).json({ error: '카테고리와 연결된 제품을 삭제하지 못했습니다.' });
   }
 });
 
@@ -66,9 +82,32 @@ function isRestockCandidate(product, now = new Date()) {
   );
 }
 
+function getRestockDelta(product, now = new Date()) {
+  if (product.isFixed) {
+    return null;
+  }
+
+  return product.inventoryChanges
+    .filter(change =>
+      change.source === 'ADMIN' &&
+      (!product.lastRestockLoggedAt || change.createdAt > product.lastRestockLoggedAt) &&
+      change.createdAt <= now
+    )
+    .reduce((total, change) => total + change.delta, 0);
+}
+
+function formatRestockDelta(delta) {
+  if (delta === null) {
+    return '신규 등록';
+  }
+
+  const sign = delta > 0 ? '+' : '';
+  return `변경 수량: ${sign}${delta}개`;
+}
+
 function buildRestockPayload(products) {
   const productList = products
-    .map(product => `- **${product.name}**`)
+    .map(product => `- **${product.name}** · ${formatRestockDelta(product.restockDelta)}`)
     .join('\n');
 
   const container = new ContainerBuilder()
@@ -116,6 +155,7 @@ router.get('/restock-candidates', isAuthenticated, isAdmin, async (req, res) => 
         categoryName: product.category.name,
         isFixed: product.isFixed,
         stockCount: product.isFixed ? null : product.stocks.length,
+        restockDelta: getRestockDelta(product, now),
         lastRestockLoggedAt: product.lastRestockLoggedAt,
       }));
 
@@ -154,7 +194,12 @@ router.post('/restock-log', isAuthenticated, isAdmin, async (req, res) => {
       },
     });
     const now = new Date();
-    const eligibleProducts = products.filter(product => isRestockCandidate(product, now));
+    const eligibleProducts = products
+      .filter(product => isRestockCandidate(product, now))
+      .map(product => ({
+        ...product,
+        restockDelta: getRestockDelta(product, now),
+      }));
     if (eligibleProducts.length === 0) {
       return res.status(400).json({ error: '새로운 관리자 재고 변경이 있는 제품이 없습니다.' });
     }
@@ -253,13 +298,20 @@ router.put('/:id', isAuthenticated, isAdmin, async (req, res) => {
   }
 });
 
-// Delete product
+// Delete product and all related records, including unlimited/fixed products.
 router.delete('/:id', isAuthenticated, isAdmin, async (req, res) => {
   try {
-    await prisma.product.delete({ where: { id: req.params.id } });
+    await prisma.$transaction(async (tx) => {
+      const productId = req.params.id;
+      await tx.receipt.deleteMany({ where: { productId } });
+      await tx.inventoryChange.deleteMany({ where: { productId } });
+      await tx.stock.deleteMany({ where: { productId } });
+      await tx.product.delete({ where: { id: productId } });
+    });
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete product' });
+    console.error(`Failed to delete product ${req.params.id}:`, error);
+    res.status(500).json({ error: '제품과 연결된 기록을 삭제하지 못했습니다.' });
   }
 });
 
