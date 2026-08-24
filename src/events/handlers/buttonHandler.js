@@ -5,14 +5,16 @@ import { getDashboardUrl } from '../../utils/runtimeConfig.js';
 export async function handleButton(interaction, client, prisma) {
   const { customId } = interaction;
 
-  // SERVER_ID 검증 헬퍼 함수
-  const checkServerId = (interaction) => {
+  // SERVER_ID 검증 헬퍼 함수 (async/await 적용)
+  const checkServerId = async (interaction) => {
     const serverId = process.env.SERVER_ID;
     if (serverId && interaction.guildId !== serverId) {
-      interaction.reply({
-        content: '이 서버에서는 사용할 수 없습니다.',
-        ephemeral: true
-      });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: '이 서버에서는 사용할 수 없습니다.',
+          ephemeral: true
+        });
+      }
       return false;
     }
     return true;
@@ -20,7 +22,7 @@ export async function handleButton(interaction, client, prisma) {
 
   // 입금 버튼
   if (customId === 'btn_deposit') {
-    if (!checkServerId(interaction)) return;
+    if (!(await checkServerId(interaction))) return;
     
     const modal = new ModalBuilder()
       .setCustomId('modal_deposit')
@@ -53,7 +55,7 @@ export async function handleButton(interaction, client, prisma) {
 
   // 상품 버튼
   if (customId === 'btn_products') {
-    if (!checkServerId(interaction)) return;
+    if (!(await checkServerId(interaction))) return;
     
     const categories = await prisma.category.findMany({
       orderBy: { id: 'asc' },
@@ -67,7 +69,7 @@ export async function handleButton(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **등록된 카테고리가 없습니다.**')
         );
 
-      return interaction.reply({
+      return await interaction.reply({
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         ephemeral: true
@@ -109,7 +111,7 @@ export async function handleButton(interaction, client, prisma) {
 
   // 내정보 버튼
   if (customId === 'btn_my_info') {
-    if (!checkServerId(interaction)) return;
+    if (!(await checkServerId(interaction))) return;
     
     const user = await prisma.user.findUnique({ where: { id: interaction.user.id } });
     const balance = (user?.balance || 0).toLocaleString();
@@ -227,7 +229,7 @@ export async function handleButton(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **후기를 작성할 수 있는 구매 내역이 없습니다.**')
         );
 
-      return interaction.reply({
+      return await interaction.reply({
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         ephemeral: true
@@ -299,10 +301,13 @@ export async function handleButton(interaction, client, prisma) {
     const lockKey = `${interaction.user.id}_${productId}`;
     
     if (global.purchaseLock && global.purchaseLock.has(lockKey)) {
-      return interaction.reply({
-        content: '⏳ 이미 구매가 진행 중입니다. 잠시만 기다려주세요.',
-        ephemeral: true
-      });
+      if (!interaction.replied && !interaction.deferred) {
+        return await interaction.reply({
+          content: '⏳ 이미 구매가 진행 중입니다. 잠시만 기다려주세요.',
+          ephemeral: true
+        });
+      }
+      return;
     }
     
     if (!global.purchaseLock) global.purchaseLock = new Map();
@@ -321,7 +326,7 @@ export async function handleButton(interaction, client, prisma) {
         new TextDisplayBuilder().setContent('❌ **구매가 취소되었습니다.**')
       );
 
-    return interaction.update({
+    return await interaction.update({
       components: [container],
       flags: MessageFlags.IsComponentsV2,
       ephemeral: true
