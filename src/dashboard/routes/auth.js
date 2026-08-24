@@ -11,9 +11,18 @@ router.get('/csrf', isAuthenticated, (req, res) => {
 router.get('/discord', passport.authenticate('discord'));
 
 router.get('/discord/callback',
-  passport.authenticate('discord', { failureRedirect: '/auth/login-failed' }),
-  (req, res) => {
-    res.redirect('/');
+  (req, res, next) => {
+    passport.authenticate('discord', { failureRedirect: '/auth/login-failed' }, (err, user, info) => {
+      if (err) {
+        console.error('OAuth callback error:', err.oauthError?.data || err.oauthError || err);
+        return res.status(500).send('OAuth error, check server logs');
+      }
+      if (!user) return res.redirect('/auth/login-failed');
+      req.logIn(user, (err2) => {
+        if (err2) return next(err2);
+        return res.redirect('/');
+      });
+    })(req, res, next);
   }
 );
 
