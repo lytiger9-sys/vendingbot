@@ -41,14 +41,21 @@ async function replyContainer(interaction, text, color = 0xFF5555) {
   const payload = {
     components: [buildContainer(text, color)],
     flags: MessageFlags.IsComponentsV2,
-    ephemeral: true,
   };
 
-  if (interaction.deferred || interaction.replied) {
-    return interaction.followUp(payload);
+  // modalHandler.js에서 이 함수가 호출되기 전에 이미 deferReply()를 해두었다는
+  // 전제 하에 동작한다. 순서: 이미 한 번 응답(reply/editReply)했다면 followUp,
+  // defer만 해둔 상태라면 editReply, 혹시 defer조차 안 된 예외적인 경우에만
+  // reply를 시도한다. (defer 없이 reply를 시도하면 3초 타임아웃으로 10062가 남)
+  if (interaction.replied) {
+    return interaction.followUp({ ...payload, ephemeral: true });
   }
 
-  return interaction.reply(payload);
+  if (interaction.deferred) {
+    return interaction.editReply(payload);
+  }
+
+  return interaction.reply({ ...payload, ephemeral: true });
 }
 
 function releasePurchaseLock(lockKey) {
@@ -245,21 +252,16 @@ export async function processPurchase(interaction, productId, prisma, client, qu
       ],
     });
 
-    await interaction.reply({
-      components: [
-        buildContainer(
-          `구매가 완료되었습니다.\n\n` +
-          `상품: ${product.name}\n` +
-          `수량: ${quantity}개\n` +
-          `할인: ${discountLabel}\n` +
-          `결제: ${totalPrice.toLocaleString()}원\n\n` +
-          `전달된 정보는 DM으로 발송되었습니다.`,
-          0x00FF00
-        )
-      ],
-      flags: MessageFlags.IsComponentsV2,
-      ephemeral: true,
-    });
+    await replyContainer(
+      interaction,
+      `구매가 완료되었습니다.\n\n` +
+      `상품: ${product.name}\n` +
+      `수량: ${quantity}개\n` +
+      `할인: ${discountLabel}\n` +
+      `결제: ${totalPrice.toLocaleString()}원\n\n` +
+      `전달된 정보는 DM으로 발송되었습니다.`,
+      0x00FF00
+    );
   } catch (error) {
     console.error('Purchase error:', error);
 
@@ -279,4 +281,3 @@ export async function processPurchase(interaction, productId, prisma, client, qu
     releasePurchaseLock(lockKey);
   }
 }
-

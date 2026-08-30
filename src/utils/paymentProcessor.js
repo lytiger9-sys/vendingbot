@@ -191,6 +191,14 @@ export async function processPayment(data, deps = {}) {
     console.log(
       `[auto-charge] no sender-name match among recent pending requests for ${formatAmount(amount)}원`
     );
+    // 디버깅용: 어떤 등록된 입금자명들과 대조했는지, 실제 원문이 무엇인지 남긴다.
+    // 마스킹 패턴이 안 맞는 케이스(2글자 이름 등)를 눈으로 확인하기 위함.
+    console.log(
+      `[auto-charge][debug] raw content: ${JSON.stringify(content)}`
+    );
+    console.log(
+      `[auto-charge][debug] candidate senderNames: ${JSON.stringify(pendingPayments.map(p => p.senderName))}`
+    );
   }
 
   return null;
