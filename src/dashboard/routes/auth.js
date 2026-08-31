@@ -3,14 +3,31 @@ import passport from 'passport';
 import { isAuthenticated } from '../middleware/auth.js';
 
 const router = express.Router();
+let oauthBlockedUntil = 0;
+
+function isGlobalRateLimitError(error) {
+  const message = String(error?.oauthError?.data?.message || error?.message || '');
+  return message.toLowerCase().includes('global rate limit');
+}
+
+function getRetryAfterSeconds(error) {
+  const retryAfter = error?.oauthError?.data?.retry_after;
+  return Number.isFinite(Number(retryAfter)) ? Math.ceil(Number(retryAfter)) : 300;
+}
 
 router.get('/csrf', isAuthenticated, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 
 router.get('/discord', (req, res, next) => {
-  // 이미 로그인된 사용자를 다시 Discord OAuth로 보내지 않아 리다이렉트 루프를 막습니다.
   if (req.user) return res.redirect('/');
+
+  if (Date.now() < oauthBlockedUntil) {
+    const retryAfter = Math.ceil((oauthBlockedUntil - Date.now()) / 1000);
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).send(`Discord 로그인 요청이 일시적으로 제한되었습니다. ${retryAfter}초 후 다시 시도해주세요.`);
+  }
+
   return passport.authenticate('discord')(req, res, next);
 });
 
@@ -18,6 +35,12 @@ router.get('/discord/callback', (req, res, next) => {
   passport.authenticate('discord', (err, user) => {
     if (err) {
       console.error('OAuth callback error:', err.oauthError?.data || err.oauthError || err);
+      if (isGlobalRateLimitError(err)) {
+        const retryAfter = getRetryAfterSeconds(err);
+        oauthBlockedUntil = Date.now() + retryAfter * 1000;
+        res.set('Retry-After', String(retryAfter));
+        return res.status(429).send(`Discord 로그인 요청이 일시적으로 제한되었습니다. ${retryAfter}초 후 다시 시도해주세요.`);
+      }
       return res.status(502).send('Discord OAuth temporarily unavailable');
     }
     if (!user) return res.redirect('/auth/login-failed');

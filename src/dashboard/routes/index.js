@@ -20,7 +20,18 @@ router.use((req, res, next) => {
 // Main dashboard route
 router.get('/', async (req, res) => {
   if (!req.user) {
-    return res.redirect('/auth/discord');
+    // 세션이 아직 없을 때 OAuth를 자동 시작하면 실패 시 무한 리다이렉트가 발생할 수 있습니다.
+    return res.status(200).send(`
+      <!doctype html>
+      <html lang="ko">
+        <head><meta charset="utf-8"><title>로그인 필요</title></head>
+        <body>
+          <h1>로그인이 필요합니다.</h1>
+          <p>아래 버튼을 눌러 Discord 로그인을 시작해주세요.</p>
+          <a href="/auth/discord">Discord로 로그인</a>
+        </body>
+      </html>
+    `);
   }
   
   const isAdminUser = await isServerAdmin(req);
