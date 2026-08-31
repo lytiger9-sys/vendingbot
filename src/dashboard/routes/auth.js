@@ -66,6 +66,13 @@ router.get('/discord', (req, res, next) => {
 });
 
 router.get('/discord/callback', (req, res, next) => {
+  // callback URL을 새로고침해도 전역 제한 중에는 Discord에 재요청하지 않습니다.
+  if (Date.now() < oauthBlockedUntil) {
+    const retryAfter = Math.ceil((oauthBlockedUntil - Date.now()) / 1000);
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).send(`Discord OAuth가 일시적으로 차단되어 있습니다. ${retryAfter}초 후 다시 시도해주세요.`);
+  }
+
   const callbackCooldownSeconds = isCallbackOnCooldown(req);
   if (callbackCooldownSeconds > 0) {
     res.set('Retry-After', String(callbackCooldownSeconds));
