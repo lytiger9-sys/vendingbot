@@ -17,10 +17,10 @@ export default {
         interaction.customId === 'btn_review_info' ||
         interaction.customId.startsWith('purchase_confirm_')
       );
-      const shouldDefer = interaction.isChatInputCommand() || heavyButton;
-
-      if (shouldDefer && !interaction.deferred && !interaction.replied) {
-        await interaction.deferReply({ ephemeral: heavyButton });
+      // 슬래시 명령어는 각 command.execute가 reply/defer를 직접 관리합니다.
+      // 여기서 다시 defer하면 임베드게시·웹패널처럼 자체 defer하는 명령어와 충돌합니다.
+      if (heavyButton && !interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: true });
       }
 
       // 모든 상호작용 진입 시 DB 유저 존재 보장 (defer 이후이므로 시간이 걸려도 안전)
