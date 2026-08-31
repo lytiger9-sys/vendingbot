@@ -2,6 +2,7 @@ import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, Conta
 import { processPurchase } from './purchaseProcessor.js';
 import { upsertChargeLog } from '../../utils/paymentLogger.js';
 import { sendReviewWebhook } from '../../utils/reviewWebhook.js';
+import { replyInteraction, deferInteraction, editInteraction } from '../../utils/interactionResponse.js';
 
 export async function handleModalSubmit(interaction, client, prisma) {
   const { customId } = interaction;
@@ -16,7 +17,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
     // ⚠️ 이 아래로 DB 조회(systemSetting, user.upsert, payment.create,
     // upsertChargeLog, 계좌 설정 3건)가 최소 6번 이어지므로, 3초 제한에
     // 걸리지 않도록 무거운 작업 전에 즉시 defer한다.
-    await interaction.deferReply({ ephemeral: true });
+    await deferInteraction(interaction, { ephemeral: true });
 
     // 최소 입금 금액 가져오기
     const minDeposit = await prisma.systemSetting.findUnique({
@@ -32,7 +33,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **입금자명을 입력해주세요.**')
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -46,7 +47,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **입금 금액에는 숫자만 입력해주세요.**')
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -60,7 +61,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent(`💰 **최소 입금 금액은 ${minAmount.toLocaleString()}원 이상이어야 합니다.**`)
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -129,7 +130,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
         )
       );
 
-    await interaction.editReply({
+    await editInteraction(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2
     });
@@ -143,7 +144,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
 
     // 중복 클릭 방지 (아직 DB 조회 전이라 3초 예산을 쓰지 않으므로 defer 전에 처리해도 안전)
     if (global.purchaseLock && global.purchaseLock.has(lockKey)) {
-      return interaction.reply({
+      return replyInteraction(interaction, {
         content: '⏳ 이미 구매가 진행 중입니다. 잠시만 기다려주세요.',
         ephemeral: true
       });
@@ -157,7 +158,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
     // 디스코드 API 호출(guild.members.fetch, DM 발송, 역할 지급, 로그 전송)이
     // 이어지므로, 3초 제한에 걸리지 않도록 무거운 작업 전에 즉시 defer한다.
     // defer 이후에는 응답 기한이 15분으로 늘어난다.
-    await interaction.deferReply({ ephemeral: true });
+    await deferInteraction(interaction, { ephemeral: true });
 
     const qtyInput = interaction.fields.getTextInputValue('purchase_qty');
     const qty = parseInt(qtyInput);
@@ -170,7 +171,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **올바른 수량을 입력해주세요. (1이상의 숫자)**')
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -189,7 +190,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **상품을 찾을 수 없습니다.**')
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -202,7 +203,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent(`❌ **재고가 부족합니다.**\n\n요청: ${qty}개\n남은 재고: ${product.stocks.length}개`)
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -219,7 +220,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent(`❌ **잔액이 부족합니다.**\n\n필요: ${totalPrice.toLocaleString()}원\n보유: ${user?.balance?.toLocaleString() || 0}원`)
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -240,7 +241,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
 
     // ⚠️ 이 아래로 DB 조회 2번 + update 1번 + 외부 웹훅 호출이 이어지므로
     // 3초 제한에 걸리지 않도록 무거운 작업 전에 즉시 defer한다.
-    await interaction.deferReply({ ephemeral: true });
+    await deferInteraction(interaction, { ephemeral: true });
 
     // 평점 유효성 검사 (1~5 정수)
     if (isNaN(rating) || rating < 1 || rating > 5) {
@@ -250,7 +251,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **평점은 1~5 사이의 숫자로 입력해주세요.**')
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -264,7 +265,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **후기 내용을 입력해주세요.**')
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -283,7 +284,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **구매 내역을 찾을 수 없습니다.**')
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -296,7 +297,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **이미 후기를 작성한 구매 내역입니다.**')
         );
 
-      return interaction.editReply({
+      return editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -323,7 +324,7 @@ export async function handleModalSubmit(interaction, client, prisma) {
         )
       );
 
-    await interaction.editReply({
+    await editInteraction(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2
     });

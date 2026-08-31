@@ -1,3 +1,5 @@
+import { updateInteraction, showModalInteraction } from '../../utils/interactionResponse.js';
+
 import { StringSelectMenuBuilder, ActionRowBuilder, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags, ButtonBuilder, ButtonStyle } from 'discord.js';
 
 export async function handleSelectMenu(interaction, client, prisma) {
@@ -22,7 +24,7 @@ export async function handleSelectMenu(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **해당 카테고리에 상품이 없습니다.**')
         );
 
-      return interaction.update({
+      return updateInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         ephemeral: true
@@ -54,7 +56,7 @@ export async function handleSelectMenu(interaction, client, prisma) {
       )
       .addActionRowComponents(selectMenu);
 
-    await interaction.update({
+    await updateInteraction(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2,
       ephemeral: true
@@ -77,7 +79,7 @@ export async function handleSelectMenu(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **상품을 찾을 수 없습니다.**')
         );
 
-      return interaction.update({
+      return updateInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         ephemeral: true
@@ -96,7 +98,7 @@ export async function handleSelectMenu(interaction, client, prisma) {
           )
         );
 
-      return interaction.update({
+      return updateInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         ephemeral: true
@@ -129,7 +131,7 @@ export async function handleSelectMenu(interaction, client, prisma) {
           })
         );
 
-      return interaction.update({
+      return updateInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         ephemeral: true
@@ -150,7 +152,7 @@ export async function handleSelectMenu(interaction, client, prisma) {
     });
 
     modal.addComponents(new ActionRowBuilder({ components: [qtyInput] }));
-    await interaction.showModal(modal);
+    await showModalInteraction(interaction, modal);
     return;
   }
 
@@ -185,7 +187,7 @@ export async function handleSelectMenu(interaction, client, prisma) {
       new ActionRowBuilder({ components: [contentInput] })
     );
 
-    await interaction.showModal(modal);
+    await showModalInteraction(interaction, modal);
     return;
   }
 }

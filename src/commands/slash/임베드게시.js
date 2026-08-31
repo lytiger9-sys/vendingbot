@@ -11,6 +11,7 @@
   MediaGalleryBuilder,     
   MediaGalleryItemBuilder 
 } from "discord.js";
+import { deferInteraction, editInteraction } from '../../utils/interactionResponse.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -23,7 +24,7 @@ export default {
         .setRequired(false)
     ),
   async execute(interaction, client, prisma) {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await deferInteraction(interaction, { flags: MessageFlags.Ephemeral });
     
     const dbSettings = await prisma.embedSetting.findUnique({ where: { id: "main_shop" } });
     
@@ -85,10 +86,10 @@ export default {
         flags: MessageFlags.IsComponentsV2
       });
 
-      await interaction.editReply({ content: `${targetChannel} 채널에 레이아웃 순서가 조정된 신형 임베드가 게시되었습니다.` });
+      await editInteraction(interaction, { content: `${targetChannel} 채널에 레이아웃 순서가 조정된 신형 임베드가 게시되었습니다.` });
     } catch (error) {
       console.error(error);
-      await interaction.editReply({ content: "컴포넌트 V2 전송 중 디스코드 API 오류가 발생했습니다." });
+      await editInteraction(interaction, { content: "컴포넌트 V2 전송 중 디스코드 API 오류가 발생했습니다." });
     }
   }
 };

@@ -1,5 +1,6 @@
 import { ContainerBuilder, TextDisplayBuilder, MessageFlags, SeparatorBuilder, SeparatorSpacingSize } from 'discord.js';
 import { checkAndGiveRole } from '../../utils/roleManager.js';
+import { fetchGuildCached, fetchMemberCached } from '../../utils/discordCache.js';
 import { sendPaymentLog } from '../../utils/paymentLogger.js';
 import {
   calculateDiscountedAmount,
@@ -13,12 +14,12 @@ async function getUserRoleDiscountRate(interaction, prisma, client) {
     return 0;
   }
 
-  const guild = interaction.guild ?? await client.guilds.fetch(interaction.guildId).catch(() => null);
+  const guild = interaction.guild ?? await fetchGuildCached(client, interaction.guildId).catch(() => null);
   if (!guild) {
     return 0;
   }
 
-  const member = await guild.members.fetch(interaction.user.id).catch(() => null);
+  const member = await fetchMemberCached(guild, interaction.user.id).catch(() => null);
   if (!member) {
     return 0;
   }

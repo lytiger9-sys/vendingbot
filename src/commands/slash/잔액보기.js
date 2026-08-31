@@ -5,6 +5,7 @@ import {
   SlashCommandBuilder,
   TextDisplayBuilder,
 } from "discord.js";
+import { replyInteraction } from '../../utils/interactionResponse.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -34,7 +35,7 @@ export default {
         ),
       );
     
-    await interaction.reply({
+    await replyInteraction(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2,
       ephemeral: true,

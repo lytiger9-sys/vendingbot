@@ -6,6 +6,8 @@ import {
   TextDisplayBuilder,
   PermissionFlagsBits,
 } from 'discord.js';
+import { replyInteraction } from '../../utils/interactionResponse.js';
+
 import { upsertChargeLog } from '../../utils/paymentLogger.js';
 
 export default {
@@ -31,7 +33,7 @@ export default {
 
     // 1. 유효한 숫자 및 정수 체크
     if (isNaN(amount) || !Number.isInteger(amount) || amount === 0) {
-      return interaction.reply({ 
+      return replyInteraction(interaction, { 
         content: "⚠️ 유효한 정수 금액을 입력해주세요. (0은 입력할 수 없습니다)", 
         ephemeral: true 
       });
@@ -56,7 +58,7 @@ export default {
 
         // 3. 차감 후 잔액이 음수가 되는지 체크
     if (newBalance < 0) {
-      return interaction.reply({ 
+      return replyInteraction(interaction, { 
         content: `❌ 잔액은 0원 미만으로 설정할 수 없습니다.\n(현재 잔액: \`${user.balance.toLocaleString()}원\`, 시도한 금액: \`${amount.toLocaleString()}원\`)`,
         ephemeral: true 
       });
@@ -113,7 +115,7 @@ export default {
         ),
       );
 
-    await interaction.reply({
+    await replyInteraction(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2,
     });

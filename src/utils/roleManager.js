@@ -1,5 +1,7 @@
 import { prisma } from '../index.js';
 
+import { fetchMemberCached } from './discordCache.js';
+
 export async function checkAndGiveRole(userId, prisma, client) {
   try {
     // SERVER_ID 검증 - 지정된 서버가 아니면 무시
@@ -22,7 +24,7 @@ export async function checkAndGiveRole(userId, prisma, client) {
       orderBy: { spentLimit: 'desc' }
     });
     
-    const discordUser = await guild.members.fetch(userId).catch(() => null);
+    const discordUser = await fetchMemberCached(guild, userId).catch(() => null);
     if (!discordUser) return;
     
     const rolesToGive = roleRewards.filter(r => user.totalSpent >= r.spentLimit).map(r => r.roleId);

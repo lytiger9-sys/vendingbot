@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../../index.js';
 import { isAuthenticated, isAdmin, isServerAdmin } from '../middleware/auth.js';
+import { fetchGuildCached, fetchMemberCached } from '../../utils/discordCache.js';
 
 const router = express.Router();
 
@@ -47,8 +48,8 @@ router.get('/', async (req, res) => {
     const client = req.app.locals.client;
     if (client && client.isReady()) {
       try {
-        const guild = await client.guilds.fetch(serverId);
-        const member = await guild.members.fetch(req.user.id).catch(() => null);
+        const guild = await fetchGuildCached(client, serverId);
+        const member = await fetchMemberCached(guild, req.user.id).catch(() => null);
         
         if (!member) {
           // 서버에 없는 유저 - 서버 링크 안내 (DB에서 가져옴)
@@ -210,7 +211,7 @@ router.get('/api/admin/roles', isAuthenticated, isAdmin, async (req, res) => {
   
   if (client && client.isReady() && serverId) {
     try {
-      const guild = await client.guilds.fetch(serverId);
+      const guild = await fetchGuildCached(client, serverId);
       const rolesWithNames = await Promise.all(roles.map(async (role) => {
         try {
           const discordRole = await guild.roles.fetch(role.roleId);

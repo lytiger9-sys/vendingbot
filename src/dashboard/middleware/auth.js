@@ -1,4 +1,5 @@
 import { PermissionFlagsBits } from 'discord.js';
+import { fetchGuildCached, fetchMemberCached } from '../../utils/discordCache.js';
 
 export function isAuthenticated(req, res, next) {
   if (req.user) {
@@ -16,8 +17,8 @@ export async function isServerAdmin(req) {
   }
 
   try {
-    const guild = await client.guilds.fetch(serverId);
-    const member = await guild.members.fetch(req.user.id).catch(() => null);
+    const guild = await fetchGuildCached(client, serverId);
+    const member = await fetchMemberCached(guild, req.user.id).catch(() => null);
 
     if (!member) {
       return false;

@@ -8,6 +8,8 @@
   TextDisplayBuilder, 
   SeparatorBuilder 
 } from "discord.js";
+import { deferInteraction, editInteraction } from '../../utils/interactionResponse.js';
+
 import { getDashboardUrl } from '../../utils/runtimeConfig.js';
 
 export default {
@@ -16,7 +18,7 @@ export default {
     .setDescription("웹 대시보드 링크를 제공합니다"),
   async execute(interaction, client, prisma) {
     // 1. 에피메럴(비공개) 응답 대기 시작
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    await deferInteraction(interaction, { flags: MessageFlags.Ephemeral });
     
     const dashboardUrl = getDashboardUrl();
     const rawColor = parseInt("5865F2", 16);
@@ -47,7 +49,7 @@ export default {
     try {
       // [전송] 
       // components 배열에 container를 담고, 신형 UI 플래그(IsComponentsV2)를 활성화합니다.
-      await interaction.editReply({
+      await editInteraction(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
@@ -61,7 +63,7 @@ export default {
       */
     } catch (error) {
       console.error(error);
-      await interaction.editReply({ content: "❌ Components V2 임베드 전송 중 오류가 발생했습니다." });
+      await editInteraction(interaction, { content: "❌ Components V2 임베드 전송 중 오류가 발생했습니다." });
     }
   }
 };
