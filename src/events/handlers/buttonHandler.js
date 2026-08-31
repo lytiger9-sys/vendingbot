@@ -313,7 +313,13 @@ export async function handleButton(interaction, client, prisma) {
     if (!global.purchaseLock) global.purchaseLock = new Map();
     global.purchaseLock.set(lockKey, true);
     setTimeout(() => global.purchaseLock.delete(lockKey), 5000);
-    
+
+    // ⚠️ processPurchase 내부에서 여러 DB 조회 + Discord API 호출
+    // (guild.members.fetch, DM 발송, 역할 지급, 로그 전송)이 이어지므로
+    // 3초 제한에 걸리지 않도록 무거운 작업 전에 즉시 defer한다.
+    // (modalHandler.js의 modal_purchase_ 흐름과 동일한 패턴)
+    await interaction.deferReply({ ephemeral: true });
+
     await processPurchase(interaction, productId, prisma, client, 1, lockKey);
     return;
   }

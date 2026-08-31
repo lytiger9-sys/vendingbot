@@ -8,7 +8,14 @@ export default {
   once: false,
   async execute(interaction, client) {
     try {
-      // 모든 상호작용 진입 시 DB 유저 존재 보장
+      // 응답 가능한 인터랙션은 DB 조회보다 먼저 즉시 ack (3초 제한 방어)
+      // 버튼/셀렉트/모달은 각 핸들러 내부에서 이미 defer 하고 있다면 여기선 생략해도 됨.
+      // 슬래시 명령어처럼 defer를 개별 커맨드에서 안 하는 경우를 위한 기본 방어선:
+      if (interaction.isChatInputCommand() && !interaction.deferred && !interaction.replied) {
+        await interaction.deferReply();
+      }
+
+      // 모든 상호작용 진입 시 DB 유저 존재 보장 (defer 이후이므로 시간이 걸려도 안전)
       await ensureUserExists(prisma, interaction.user);
 
       // 슬래시 명령어
