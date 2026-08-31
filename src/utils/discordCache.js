@@ -7,6 +7,7 @@ const MEMBER_TTL_MS = 30 * 1000;
 function getCached(cache, key) {
   const entry = cache.get(key);
   if (!entry) return null;
+  if (entry.pending) return entry.pending;
   if (entry.expiresAt <= Date.now()) {
     cache.delete(key);
     return null;
