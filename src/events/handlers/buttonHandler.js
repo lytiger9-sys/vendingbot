@@ -2,6 +2,12 @@ import { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, Strin
 import { processPurchase } from './purchaseProcessor.js';
 import { getDashboardUrl } from '../../utils/runtimeConfig.js';
 
+async function replySafely(interaction, options) {
+  if (interaction.deferred) return interaction.editReply(options);
+  if (interaction.replied) return interaction.followUp(options);
+  return interaction.reply(options);
+}
+
 export async function handleButton(interaction, client, prisma) {
   const { customId } = interaction;
 
@@ -9,12 +15,10 @@ export async function handleButton(interaction, client, prisma) {
   const checkServerId = async (interaction) => {
     const serverId = process.env.SERVER_ID;
     if (serverId && interaction.guildId !== serverId) {
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: '이 서버에서는 사용할 수 없습니다.',
-          ephemeral: true
-        });
-      }
+      await replySafely(interaction, {
+        content: '이 서버에서는 사용할 수 없습니다.',
+        ephemeral: true
+      });
       return false;
     }
     return true;
@@ -69,7 +73,7 @@ export async function handleButton(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **등록된 카테고리가 없습니다.**')
         );
 
-      return await interaction.reply({
+      return await replySafely(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         ephemeral: true
@@ -101,7 +105,7 @@ export async function handleButton(interaction, client, prisma) {
       )
       .addActionRowComponents(selectMenu);
 
-    await interaction.reply({
+    await replySafely(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2,
       ephemeral: true
@@ -171,7 +175,7 @@ export async function handleButton(interaction, client, prisma) {
         )
       );
 
-    await interaction.reply({
+    await replySafely(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2,
       ephemeral: true
@@ -205,7 +209,7 @@ export async function handleButton(interaction, client, prisma) {
         })
       );
 
-    await interaction.reply({
+    await replySafely(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2,
       ephemeral: true
@@ -229,7 +233,7 @@ export async function handleButton(interaction, client, prisma) {
           new TextDisplayBuilder().setContent('❌ **후기를 작성할 수 있는 구매 내역이 없습니다.**')
         );
 
-      return await interaction.reply({
+      return await replySafely(interaction, {
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         ephemeral: true
@@ -259,7 +263,7 @@ export async function handleButton(interaction, client, prisma) {
       )
       .addActionRowComponents(selectMenu);
 
-    await interaction.reply({
+    await replySafely(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2,
       ephemeral: true
@@ -288,7 +292,7 @@ export async function handleButton(interaction, client, prisma) {
         })
       );
 
-    await interaction.reply({
+    await replySafely(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2
     });
@@ -302,7 +306,7 @@ export async function handleButton(interaction, client, prisma) {
     
     if (global.purchaseLock && global.purchaseLock.has(lockKey)) {
       if (!interaction.replied && !interaction.deferred) {
-        return await interaction.reply({
+        return await replySafely(interaction, {
           content: '⏳ 이미 구매가 진행 중입니다. 잠시만 기다려주세요.',
           ephemeral: true
         });
@@ -318,7 +322,9 @@ export async function handleButton(interaction, client, prisma) {
     // (guild.members.fetch, DM 발송, 역할 지급, 로그 전송)이 이어지므로
     // 3초 제한에 걸리지 않도록 무거운 작업 전에 즉시 defer한다.
     // (modalHandler.js의 modal_purchase_ 흐름과 동일한 패턴)
-    await interaction.deferReply({ ephemeral: true });
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply({ ephemeral: true });
+    }
 
     await processPurchase(interaction, productId, prisma, client, 1, lockKey);
     return;
@@ -332,7 +338,7 @@ export async function handleButton(interaction, client, prisma) {
         new TextDisplayBuilder().setContent('❌ **구매가 취소되었습니다.**')
       );
 
-    return await interaction.update({
+    return await replySafely(interaction, {
       components: [container],
       flags: MessageFlags.IsComponentsV2,
       ephemeral: true

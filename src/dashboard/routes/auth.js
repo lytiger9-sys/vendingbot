@@ -8,23 +8,29 @@ router.get('/csrf', isAuthenticated, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 
-router.get('/discord', passport.authenticate('discord'));
+router.get('/discord', (req, res, next) => {
+  // 이미 로그인된 사용자를 다시 Discord OAuth로 보내지 않아 리다이렉트 루프를 막습니다.
+  if (req.user) return res.redirect('/');
+  return passport.authenticate('discord')(req, res, next);
+});
 
-router.get('/discord/callback',
-  (req, res, next) => {
-    passport.authenticate('discord', { failureRedirect: '/auth/login-failed' }, (err, user, info) => {
-      if (err) {
-        console.error('OAuth callback error:', err.oauthError?.data || err.oauthError || err);
-        return res.status(500).send('OAuth error, check server logs');
-      }
-      if (!user) return res.redirect('/auth/login-failed');
-      req.logIn(user, (err2) => {
-        if (err2) return next(err2);
+router.get('/discord/callback', (req, res, next) => {
+  passport.authenticate('discord', (err, user) => {
+    if (err) {
+      console.error('OAuth callback error:', err.oauthError?.data || err.oauthError || err);
+      return res.status(502).send('Discord OAuth temporarily unavailable');
+    }
+    if (!user) return res.redirect('/auth/login-failed');
+
+    req.logIn(user, (loginError) => {
+      if (loginError) return next(loginError);
+      return req.session.save((saveError) => {
+        if (saveError) return next(saveError);
         return res.redirect('/');
       });
-    })(req, res, next);
-  }
-);
+    });
+  })(req, res, next);
+});
 
 router.get('/login-failed', (req, res) => {
   res.status(401).send(

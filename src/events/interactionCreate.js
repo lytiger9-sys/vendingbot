@@ -8,11 +8,19 @@ export default {
   once: false,
   async execute(interaction, client) {
     try {
-      // 응답 가능한 인터랙션은 DB 조회보다 먼저 즉시 ack (3초 제한 방어)
-      // 버튼/셀렉트/모달은 각 핸들러 내부에서 이미 defer 하고 있다면 여기선 생략해도 됨.
-      // 슬래시 명령어처럼 defer를 개별 커맨드에서 안 하는 경우를 위한 기본 방어선:
-      if (interaction.isChatInputCommand() && !interaction.deferred && !interaction.replied) {
-        await interaction.deferReply();
+      // Discord 인터랙션은 3초 안에 최초 응답이 필요하므로 DB 조회 전에 즉시 승인합니다.
+      // 무거운 버튼/셀렉트/모달 작업은 이후 editReply/update로 마무리합니다.
+      const heavyButton = interaction.isButton() && (
+        interaction.customId === 'btn_products' ||
+        interaction.customId === 'btn_my_info' ||
+        interaction.customId === 'btn_review_discord' ||
+        interaction.customId === 'btn_review_info' ||
+        interaction.customId.startsWith('purchase_confirm_')
+      );
+      const shouldDefer = interaction.isChatInputCommand() || heavyButton;
+
+      if (shouldDefer && !interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: heavyButton });
       }
 
       // 모든 상호작용 진입 시 DB 유저 존재 보장 (defer 이후이므로 시간이 걸려도 안전)
@@ -44,9 +52,17 @@ export default {
         return;
       }
     } catch (error) {
+      const errorCode = error?.code ?? error?.rawError?.code;
       console.error('Interaction Execution Error:', error);
 
-      // 이미 응답(replied)되거나 대기(deferred) 상태인지 확인하여 무한 에러 방지
+      // 10062는 Discord가 이미 만료·사용 처리한 토큰입니다.
+      // 이 토큰으로 reply/followUp를 재시도하면 2차 오류만 반복되므로 즉시 종료합니다.
+      if (errorCode === 10062 || errorCode === 10015) {
+        console.warn(`Interaction expired or already acknowledged (code ${errorCode}); no retry attempted.`);
+        return;
+      }
+
+      // 이미 응답(replied)되거나 대기(deferred) 상태인지 확인하여 중복 응답을 방지합니다.
       const errorMessage = { content: '⚠️ 처리 중 오류가 발생했습니다.', flags: MessageFlags.Ephemeral };
 
       try {
