@@ -152,7 +152,7 @@ global.sendUserDM = async (userId, options) => {
   }
 };
 
-const PORT = Number.parseInt(process.env.PORT || '3000', 10) || 3000;
+const PORT = Number.parseInt(process.env.PORT || '10000', 10) || 10000;
 
 async function start() {
   // Render가 외부 서비스 초기화 전에 포트를 감지할 수 있도록 서버를 먼저 엽니다.
