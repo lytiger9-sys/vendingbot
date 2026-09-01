@@ -154,12 +154,44 @@ global.sendUserDM = async (userId, options) => {
 
 const PORT = Number.parseInt(process.env.PORT || '10000', 10) || 10000;
 const DISCORD_LOGIN_TIMEOUT_MS = 45_000;
-const DISCORD_RETRY_BASE_MS = 5_000;
-const DISCORD_RETRY_MAX_MS = 60_000;
+const DISCORD_GATEWAY_PREFLIGHT_TIMEOUT_MS = 15_000;
+const DISCORD_RETRY_BASE_MS = 30_000;
+const DISCORD_RETRY_MAX_MS = 300_000;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function gatewayPreflight() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DISCORD_GATEWAY_PREFLIGHT_TIMEOUT_MS);
+
+  try {
+    const response = await fetch('https://discord.com/api/v10/gateway/bot', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+        'User-Agent': 'vendingbot-gateway-preflight',
+      },
+      signal: controller.signal,
+    });
+
+    const body = await response.text();
+    if (!response.ok) {
+      throw new Error(`Gateway preflight failed with HTTP ${response.status}: ${body.slice(0, 300)}`);
+    }
+
+    console.log('[discord gateway preflight] succeeded');
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`Gateway preflight timed out after ${DISCORD_GATEWAY_PREFLIGHT_TIMEOUT_MS / 1000} seconds`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function loginDiscordWithTimeout() {
+  await gatewayPreflight();
   let timeout;
   const timeoutPromise = new Promise((_, reject) => {
     timeout = setTimeout(() => {
@@ -206,7 +238,7 @@ async function connectDiscord() {
 
       const retryDelay = Math.min(
         DISCORD_RETRY_MAX_MS,
-        DISCORD_RETRY_BASE_MS * (2 ** Math.min(attempt, 4))
+        DISCORD_RETRY_BASE_MS * (2 ** Math.min(attempt, 3))
       );
       console.log(`[discord login] retrying in ${retryDelay / 1000}s...`);
       attempt += 1;
