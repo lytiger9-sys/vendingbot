@@ -22,6 +22,37 @@ export const client = new Client({
 
 export const prisma = new PrismaClient();
 
+client.on('error', (error) => {
+  console.error('[discord client error]', {
+    name: error?.name,
+    code: error?.code,
+    message: error?.message,
+  });
+});
+
+client.on('shardError', (error, shardId) => {
+  console.error('[discord shard error]', {
+    shardId,
+    name: error?.name,
+    code: error?.code,
+    message: error?.message,
+  });
+});
+
+client.on('shardDisconnect', (closeEvent, shardId) => {
+  console.error('[discord shard disconnect]', {
+    shardId,
+    code: closeEvent?.code,
+    reason: closeEvent?.reason?.toString?.() || String(closeEvent?.reason || ''),
+  });
+});
+
+client.on('debug', (message) => {
+  if (/identify|ready|session|gateway|4013|4014|429/i.test(message)) {
+    console.log('[discord gateway debug]', message);
+  }
+});
+
 client.commands = new Collection();
 client.slashCommands = new Collection();
 
@@ -136,7 +167,21 @@ async function start() {
     await loadCommands(client);
     await loadEvents(client);
 
-    await client.login(process.env.DISCORD_BOT_TOKEN);
+    if (!process.env.DISCORD_BOT_TOKEN) {
+      throw new Error('DISCORD_BOT_TOKEN is not configured');
+    }
+
+    const loginTimeout = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Discord Gateway login timed out after 45 seconds'));
+      }, 45_000);
+    });
+
+    console.log('[discord login] connecting to Gateway...');
+    await Promise.race([
+      client.login(process.env.DISCORD_BOT_TOKEN),
+      loginTimeout,
+    ]);
     startPushbulletListener({ prisma, client });
     startPaymentExpiryScheduler(prisma, client);
     console.log('Bot logged in');
