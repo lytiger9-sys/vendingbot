@@ -1040,3 +1040,142 @@ a {
 .hover\:underline:hover {
   text-decoration: underline;
 }
+
+/* ===== 로그인 페이지 ===== */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(201, 169, 97, 0.12), transparent 38%),
+    linear-gradient(180deg, #050505 0%, #000000 100%);
+}
+
+.auth-page::before,
+.auth-page::after {
+  content: '';
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border: 1px solid rgba(201, 169, 97, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.auth-page::before {
+  top: -220px;
+  right: -120px;
+}
+
+.auth-page::after {
+  bottom: -250px;
+  left: -140px;
+}
+
+.auth-card {
+  width: min(100%, 460px);
+  padding: 36px;
+  background: rgba(17, 17, 17, 0.94);
+  border-color: #2a2a2a;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), 0 0 45px rgba(201, 169, 97, 0.07);
+  z-index: 1;
+}
+
+.auth-card:hover {
+  transform: none;
+  border-color: #2a2a2a;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), 0 0 45px rgba(201, 169, 97, 0.07);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 28px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #1f1f1f;
+}
+
+.auth-mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--gradient-primary);
+  color: #1a1208;
+  font-size: 1.4rem;
+  font-weight: 900;
+  box-shadow: 0 6px 20px rgba(201, 169, 97, 0.24);
+}
+
+.auth-eyebrow,
+.auth-kicker {
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.auth-brand-name {
+  color: #f5f5f5;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.auth-card-content h1 {
+  margin-top: 10px;
+  color: #ffffff;
+  font-size: clamp(1.6rem, 4vw, 2rem);
+  line-height: 1.3;
+  letter-spacing: -0.03em;
+}
+
+.auth-description {
+  margin-top: 14px;
+  color: #888888;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.auth-login-button {
+  width: 100%;
+  margin-top: 28px;
+}
+
+.auth-discord-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.auth-footnote {
+  margin-top: 24px;
+  color: #555555;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .auth-page {
+    padding: 20px 14px;
+  }
+
+  .auth-card {
+    padding: 28px 22px;
+  }
+
+  .auth-brand {
+    margin-bottom: 26px;
+  }
+}

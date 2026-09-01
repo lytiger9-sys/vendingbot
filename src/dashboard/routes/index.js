@@ -25,11 +25,36 @@ router.get('/', async (req, res) => {
     return res.status(200).send(`
       <!doctype html>
       <html lang="ko">
-        <head><meta charset="utf-8"><title>로그인 필요</title></head>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>로그인 | 자판기</title>
+          <link rel="stylesheet" href="/css/style.css">
+        </head>
         <body>
-          <h1>로그인이 필요합니다.</h1>
-          <p>아래 버튼을 눌러 Discord 로그인을 시작해주세요.</p>
-          <a href="/auth/discord">Discord로 로그인</a>
+          <main class="auth-page">
+            <section class="auth-card card" aria-labelledby="login-title">
+              <div class="auth-brand">
+                <div class="auth-mark" aria-hidden="true">V</div>
+                <div>
+                  <p class="auth-eyebrow">VENDING SERVICE</p>
+                  <p class="auth-brand-name">자판기 대시보드</p>
+                </div>
+              </div>
+
+              <div class="auth-card-content">
+                <p class="auth-kicker">MEMBER ACCESS</p>
+                <h1 id="login-title">대시보드에 로그인하세요</h1>
+                <p class="auth-description">Discord 계정으로 로그인하면 잔액, 구매 내역과 상점 서비스를 이용할 수 있습니다.</p>
+                <a class="btn btn-primary btn-lg auth-login-button" href="/auth/discord">
+                  <span class="auth-discord-icon" aria-hidden="true">D</span>
+                  Discord로 로그인
+                </a>
+              </div>
+
+              <p class="auth-footnote">안전한 Discord OAuth 인증을 사용합니다.</p>
+            </section>
+          </main>
         </body>
       </html>
     `);
