@@ -17,18 +17,23 @@ let restockLogSendInProgress = false;
 
 // Get all categories with products
 router.get('/', async (req, res) => {
-  const categories = await prisma.category.findMany({
-    include: {
-      products: {
-        orderBy: { id: 'asc' },
-        include: {
-          stocks: { where: { isSold: false } }
+  try {
+    const categories = await prisma.category.findMany({
+      include: {
+        products: {
+          orderBy: { id: 'asc' },
+          include: {
+            stocks: { where: { isSold: false } }
+          }
         }
-      }
-    },
-    orderBy: { id: 'asc' }
-  });
-  res.json(categories);
+      },
+      orderBy: { id: 'asc' }
+    });
+    return res.json(categories);
+  } catch (error) {
+    console.error('Failed to fetch products:', error);
+    return res.status(500).json({ error: '상품 정보를 불러오지 못했습니다.' });
+  }
 });
 
 // Create category

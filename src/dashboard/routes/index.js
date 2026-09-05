@@ -226,35 +226,40 @@ router.get('/admin/stats', isAuthenticated, isAdmin, async (req, res) => {
 
 // Admin - Roles API (JSON)
 router.get('/api/admin/roles', isAuthenticated, isAdmin, async (req, res) => {
-  const roles = await prisma.roleReward.findMany({
-    orderBy: { spentLimit: 'asc' }
-  });
-  
-  // Discord 클라이언트로 역할 이름 가져오기
-  const client = req.app.locals.client;
-  const serverId = process.env.SERVER_ID;
-  
-  if (client && client.isReady() && serverId) {
-    try {
-      const guild = await fetchGuildCached(client, serverId);
-      const rolesWithNames = await Promise.all(roles.map(async (role) => {
-        try {
-          const discordRole = await guild.roles.fetch(role.roleId);
-          return {
-            ...role,
-            roleName: discordRole ? discordRole.name : '알 수 없음'
-          };
-        } catch {
-          return { ...role, roleName: '역할 없음' };
-        }
-      }));
-      return res.json(rolesWithNames);
-    } catch (e) {
-      console.error('역할 이름 가져오기 실패:', e);
+  try {
+    const roles = await prisma.roleReward.findMany({
+      orderBy: { spentLimit: 'asc' }
+    });
+
+    // Discord 클라이언트로 역할 이름 가져오기
+    const client = req.app.locals.client;
+    const serverId = process.env.SERVER_ID;
+
+    if (client && client.isReady() && serverId) {
+      try {
+        const guild = await fetchGuildCached(client, serverId);
+        const rolesWithNames = await Promise.all(roles.map(async (role) => {
+          try {
+            const discordRole = await guild.roles.fetch(role.roleId);
+            return {
+              ...role,
+              roleName: discordRole ? discordRole.name : '알 수 없음'
+            };
+          } catch {
+            return { ...role, roleName: '역할 없음' };
+          }
+        }));
+        return res.json(rolesWithNames);
+      } catch (error) {
+        console.error('역할 이름 가져오기 실패:', error);
+      }
     }
+
+    return res.json(roles.map(r => ({ ...r, roleName: null })));
+  } catch (error) {
+    console.error('Roles fetch error:', error);
+    return res.status(500).json({ error: '역할 설정을 불러오지 못했습니다.' });
   }
-  
-  res.json(roles.map(r => ({ ...r, roleName: null })));
 });
 
 router.post('/api/admin/roles', isAuthenticated, isAdmin, async (req, res) => {

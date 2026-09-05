@@ -1,10 +1,24 @@
 import { PermissionFlagsBits } from 'discord.js';
 import { fetchGuildCached, fetchMemberCached } from '../../utils/discordCache.js';
 
+function isApiRequest(req) {
+  return req.originalUrl.startsWith('/api/') ||
+    req.originalUrl === '/auth/csrf' ||
+    /^\/dashboard\/(purchases|stats|reviews)(\/|$)/.test(req.originalUrl);
+}
+
 export function isAuthenticated(req, res, next) {
   if (req.user) {
     return next();
   }
+
+  if (isApiRequest(req)) {
+    return res.status(401).json({
+      error: '로그인이 필요합니다.',
+      redirect: '/auth/discord'
+    });
+  }
+
   res.redirect('/auth/discord');
 }
 

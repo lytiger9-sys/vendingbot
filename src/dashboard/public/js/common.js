@@ -44,8 +44,25 @@ window.fetch = async function csrfAwareFetch(input, init = {}) {
 async function api(url, opts = {}) {
   try {
     const r = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...opts.headers } });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.error || "Error"); }
-    return await r.json();
+    const contentType = r.headers.get('content-type') || '';
+    const body = contentType.includes('application/json')
+      ? await r.json()
+      : null;
+
+    if (r.status === 401 && body?.redirect) {
+      window.location.assign(body.redirect);
+      throw new Error(body.error || '로그인이 필요합니다.');
+    }
+
+    if (!r.ok) {
+      throw new Error(body?.error || `요청에 실패했습니다. (${r.status})`);
+    }
+
+    if (body === null) {
+      throw new Error('서버가 JSON 응답을 반환하지 않았습니다.');
+    }
+
+    return body;
   } catch (err) { showToast(err.message, "error"); throw err; }
 }
 function formatMoney(n) { return n.toLocaleString() + "원"; }

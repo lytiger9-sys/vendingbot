@@ -17,32 +17,42 @@ const router = express.Router();
 
 // Get all settings
 router.get('/', isAuthenticated, isAdmin, async (req, res) => {
-  const settings = await prisma.systemSetting.findMany();
-  const embedSettings = await prisma.embedSetting.findUnique({
-    where: { id: 'main_shop' }
-  }) || {
-    id: 'main_shop',
-    title: '자판기에 오신 것을 환영합니다',
-    description: '아래 버튼을 눌러 원하는 서비스를 이용하세요.',
-    color: '#5865F2',
-    footerText: ''
-  };
-  res.json({ settings, embedSettings });
+  try {
+    const settings = await prisma.systemSetting.findMany();
+    const embedSettings = await prisma.embedSetting.findUnique({
+      where: { id: 'main_shop' }
+    }) || {
+      id: 'main_shop',
+      title: '자판기에 오신 것을 환영합니다',
+      description: '아래 버튼을 눌러 원하는 서비스를 이용하세요.',
+      color: '#5865F2',
+      footerText: ''
+    };
+    return res.json({ settings, embedSettings });
+  } catch (error) {
+    console.error('Settings fetch error:', error);
+    return res.status(500).json({ error: '설정을 불러오지 못했습니다.' });
+  }
 });
 
 // Get embed settings only
 router.get('/embed', isAuthenticated, isAdmin, async (req, res) => {
-  const embedSettings = await prisma.embedSetting.findUnique({
-    where: { id: 'main_shop' }
-  }) || {
-    id: 'main_shop',
-    title: '',
-    description: '',
-    color: '#5865F2',
-    footerText: '',
-    imageUrl: null
-  };
-  res.json({ embedSettings });
+  try {
+    const embedSettings = await prisma.embedSetting.findUnique({
+      where: { id: 'main_shop' }
+    }) || {
+      id: 'main_shop',
+      title: '',
+      description: '',
+      color: '#5865F2',
+      footerText: '',
+      imageUrl: null
+    };
+    return res.json({ embedSettings });
+  } catch (error) {
+    console.error('Embed settings fetch error:', error);
+    return res.status(500).json({ error: '임베드 설정을 불러오지 못했습니다.' });
+  }
 });
 
 // Update system settings
