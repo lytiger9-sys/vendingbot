@@ -338,4 +338,9 @@ export async function handleButton(interaction, client, prisma) {
       ephemeral: true
     });
   }
+
+  return replyInteraction(interaction, {
+    content: '이 버튼은 더 이상 사용할 수 없습니다. 상점 메시지를 새로 게시한 뒤 다시 시도해주세요.',
+    ephemeral: true,
+  });
 }

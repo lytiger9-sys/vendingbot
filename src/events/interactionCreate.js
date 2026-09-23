@@ -2,30 +2,45 @@
 import { prisma } from '../index.js';
 import { handleButton, handleSelectMenu, handleModalSubmit } from './handlers/index.js';
 import { ensureUserExists } from '../utils/ensureUser.js';
-import { deferInteraction, handleInteractionError, getDiscordErrorCode, isExpiredInteractionError } from '../utils/interactionResponse.js';
+import {
+  deferInteraction,
+  deferUpdateInteraction,
+  handleInteractionError,
+  getDiscordErrorCode,
+  isExpiredInteractionError,
+} from '../utils/interactionResponse.js';
 
 export default {
   name: Events.InteractionCreate,
   once: false,
   async execute(interaction, client) {
     try {
-      // Discord 인터랙션은 3초 안에 최초 응답이 필요하므로 DB 조회 전에 즉시 승인합니다.
-      // 무거운 버튼/셀렉트/모달 작업은 이후 editReply/update로 마무리합니다.
-      const heavyButton = interaction.isButton() && (
-        interaction.customId === 'btn_products' ||
-        interaction.customId === 'btn_my_info' ||
-        interaction.customId === 'btn_review_discord' ||
-        interaction.customId === 'btn_review_info' ||
-        interaction.customId.startsWith('purchase_confirm_')
-      );
+      const customId = interaction.customId ?? interaction.commandName;
+      console.log(`[interaction] received: ${customId || 'unknown'}`);
+
+      // 모달은 최초 상호작용에서만 열 수 있으므로 defer하지 않고 바로 핸들러로 보냅니다.
+      // 나머지 컴포넌트는 DB 작업 전에 즉시 승인해 Discord의 3초 제한을 지킵니다.
+      const opensModal =
+        (interaction.isButton() && interaction.customId === 'btn_deposit') ||
+        (interaction.isStringSelectMenu() && (
+          interaction.customId === 'select_product' ||
+          interaction.customId === 'select_review_target'
+        ));
+
       // 슬래시 명령어는 각 command.execute가 reply/defer를 직접 관리합니다.
       // 여기서 다시 defer하면 임베드게시·웹패널처럼 자체 defer하는 명령어와 충돌합니다.
-      if (heavyButton) {
+      if (interaction.isButton() && !opensModal) {
+        await deferInteraction(interaction, { ephemeral: true });
+      } else if (interaction.isStringSelectMenu() && !opensModal) {
+        await deferUpdateInteraction(interaction);
+      } else if (interaction.isModalSubmit()) {
         await deferInteraction(interaction, { ephemeral: true });
       }
 
-      // 모든 상호작용 진입 시 DB 유저 존재 보장 (defer 이후이므로 시간이 걸려도 안전)
-      await ensureUserExists(prisma, interaction.user);
+      // 모달을 열어야 하는 상호작용은 모달 제출 시점에 DB 유저 보장을 수행합니다.
+      if (!opensModal) {
+        await ensureUserExists(prisma, interaction.user);
+      }
 
       // 슬래시 명령어
       if (interaction.isChatInputCommand()) {
@@ -54,7 +69,11 @@ export default {
       }
     } catch (error) {
       const errorCode = getDiscordErrorCode(error);
-      console.error('Interaction Execution Error:', error);
+      console.error('Interaction Execution Error:', {
+        customId: interaction.customId ?? interaction.commandName,
+        code: error?.code,
+        message: error?.message,
+      });
 
       // 10062는 Discord가 이미 만료·사용 처리한 토큰입니다.
       // 이 토큰으로 reply/followUp를 재시도하면 2차 오류만 반복되므로 즉시 종료합니다.

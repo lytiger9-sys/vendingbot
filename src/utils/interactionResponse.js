@@ -19,6 +19,18 @@ export async function deferInteraction(interaction, options = {}) {
   }
 }
 
+export async function deferUpdateInteraction(interaction) {
+  if (interaction.replied || interaction.deferred) return false;
+
+  try {
+    await interaction.deferUpdate();
+    return true;
+  } catch (error) {
+    if (isExpiredInteractionError(error)) return false;
+    throw error;
+  }
+}
+
 export async function replyInteraction(interaction, options) {
   try {
     if (interaction.deferred) return await interaction.editReply(options);
