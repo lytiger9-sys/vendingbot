@@ -2,6 +2,7 @@
 import { prisma } from '../index.js';
 import { handleButton, handleSelectMenu, handleModalSubmit } from './handlers/index.js';
 import { ensureUserExists } from '../utils/ensureUser.js';
+import { withTimeout } from '../utils/promiseTimeout.js';
 import {
   deferInteraction,
   deferUpdateInteraction,
@@ -9,6 +10,8 @@ import {
   getDiscordErrorCode,
   isExpiredInteractionError,
 } from '../utils/interactionResponse.js';
+
+const INTERACTION_HANDLER_TIMEOUT_MS = 12_000;
 
 export default {
   name: Events.InteractionCreate,
@@ -31,14 +34,20 @@ export default {
       // 여기서 다시 defer하면 임베드게시·웹패널처럼 자체 defer하는 명령어와 충돌합니다.
       if (interaction.isButton() && !opensModal) {
         await deferInteraction(interaction, { ephemeral: true });
+        console.log(`[interaction] acknowledged: ${customId}`);
       } else if (interaction.isStringSelectMenu() && !opensModal) {
         await deferUpdateInteraction(interaction);
+        console.log(`[interaction] acknowledged: ${customId}`);
       } else if (interaction.isModalSubmit()) {
         await deferInteraction(interaction, { ephemeral: true });
+        console.log(`[interaction] acknowledged: ${customId}`);
       }
 
-      // 모달을 열어야 하는 상호작용은 모달 제출 시점에 DB 유저 보장을 수행합니다.
-      if (!opensModal) {
+      // 버튼마다 같은 upsert를 기다리면 DB 지연이 모든 컴포넌트 응답을 막습니다.
+      // 이미 승인한 컴포넌트는 백그라운드에서 유저 레코드를 보장합니다.
+      if (!opensModal && !interaction.isChatInputCommand()) {
+        void ensureUserExists(prisma, interaction.user);
+      } else if (!opensModal) {
         await ensureUserExists(prisma, interaction.user);
       }
 
@@ -52,19 +61,39 @@ export default {
 
       // 버튼 인터랙션
       if (interaction.isButton()) {
-        await handleButton(interaction, client, prisma);
+        if (opensModal) {
+          await handleButton(interaction, client, prisma);
+        } else {
+          await withTimeout(
+            handleButton(interaction, client, prisma),
+            INTERACTION_HANDLER_TIMEOUT_MS,
+            `button handler (${customId})`,
+          );
+        }
         return;
       }
 
       // 셀렉트 메뉴 인터랙션
       if (interaction.isStringSelectMenu()) {
-        await handleSelectMenu(interaction, client, prisma);
+        if (opensModal) {
+          await handleSelectMenu(interaction, client, prisma);
+        } else {
+          await withTimeout(
+            handleSelectMenu(interaction, client, prisma),
+            INTERACTION_HANDLER_TIMEOUT_MS,
+            `select-menu handler (${customId})`,
+          );
+        }
         return;
       }
 
       // 모달 제출 인터랙션
       if (interaction.isModalSubmit()) {
-        await handleModalSubmit(interaction, client, prisma);
+        await withTimeout(
+          handleModalSubmit(interaction, client, prisma),
+          INTERACTION_HANDLER_TIMEOUT_MS,
+          `modal handler (${customId})`,
+        );
         return;
       }
     } catch (error) {
