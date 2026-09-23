@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Client, GatewayIntentBits, Partials, Collection } from 'discord.js';
+import { Client, Events, GatewayIntentBits, Partials, Collection } from 'discord.js';
 import { PrismaClient } from '@prisma/client';
 import express from 'express';
 import session from 'express-session';
@@ -9,6 +9,8 @@ import { PrismaSessionStore } from './utils/prismaSessionStore.js';
 import { csrfProtection, csrfToken } from './dashboard/middleware/csrf.js';
 import { startPushbulletListener } from './utils/pushbulletListener.js';
 import { startPaymentExpiryScheduler, stopPaymentExpiryScheduler } from './utils/paymentExpiryScheduler.js';
+import { connectDiscord } from './utils/discordConnection.js';
+import { attachDiscordRateLimitLogger } from './utils/discordRateLimitLogger.js';
 
 export const client = new Client({
   intents: [
@@ -21,6 +23,8 @@ export const client = new Client({
 });
 
 export const prisma = new PrismaClient();
+
+attachDiscordRateLimitLogger(client.rest);
 
 client.on('error', (error) => {
   console.error('[discord client error]', {
@@ -47,10 +51,12 @@ client.on('shardDisconnect', (closeEvent, shardId) => {
   });
 });
 
-client.on('debug', (message) => {
-  if (/identify|ready|session|gateway|4013|4014|429/i.test(message)) {
-    console.log('[discord gateway debug]', message);
-  }
+client.on(Events.ShardReconnecting, (shardId) => {
+  console.warn(`[discord gateway] shard ${shardId} disconnected; Discord.js is reconnecting automatically.`);
+});
+
+client.on(Events.ShardResume, (shardId) => {
+  console.log(`[discord gateway] shard ${shardId} session resumed.`);
 });
 
 client.commands = new Collection();
@@ -153,99 +159,6 @@ global.sendUserDM = async (userId, options) => {
 };
 
 const PORT = Number.parseInt(process.env.PORT || '10000', 10) || 10000;
-const DISCORD_LOGIN_TIMEOUT_MS = 45_000;
-const DISCORD_GATEWAY_PREFLIGHT_TIMEOUT_MS = 15_000;
-const DISCORD_RETRY_BASE_MS = 30_000;
-const DISCORD_RETRY_MAX_MS = 300_000;
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function gatewayPreflight() {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), DISCORD_GATEWAY_PREFLIGHT_TIMEOUT_MS);
-
-  try {
-    const response = await fetch('https://discord.com/api/v10/gateway/bot', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
-        'User-Agent': 'vendingbot-gateway-preflight',
-      },
-      signal: controller.signal,
-    });
-
-    const body = await response.text();
-    if (!response.ok) {
-      throw new Error(`Gateway preflight failed with HTTP ${response.status}: ${body.slice(0, 300)}`);
-    }
-
-    console.log('[discord gateway preflight] succeeded');
-  } catch (error) {
-    if (error?.name === 'AbortError') {
-      throw new Error(`Gateway preflight timed out after ${DISCORD_GATEWAY_PREFLIGHT_TIMEOUT_MS / 1000} seconds`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function loginDiscordWithTimeout() {
-  await gatewayPreflight();
-  let timeout;
-  const timeoutPromise = new Promise((_, reject) => {
-    timeout = setTimeout(() => {
-      reject(new Error(`Discord Gateway login timed out after ${DISCORD_LOGIN_TIMEOUT_MS / 1000} seconds`));
-    }, DISCORD_LOGIN_TIMEOUT_MS);
-  });
-
-  try {
-    return await Promise.race([
-      client.login(process.env.DISCORD_BOT_TOKEN),
-      timeoutPromise,
-    ]);
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function connectDiscord() {
-  let attempt = 0;
-
-  while (true) {
-    try {
-      console.log(`[discord login] connecting to Gateway (attempt ${attempt + 1})...`);
-      await loginDiscordWithTimeout();
-      startPushbulletListener({ prisma, client });
-      startPaymentExpiryScheduler(prisma, client);
-      app.locals.client = client;
-      console.log('Bot logged in');
-      console.log('Bot services initialized');
-      return;
-    } catch (error) {
-      console.error('[discord login failed]', {
-        attempt: attempt + 1,
-        name: error?.name,
-        code: error?.code,
-        message: error?.message,
-      });
-
-      try {
-        client.destroy();
-      } catch (destroyError) {
-        console.error('[discord destroy failed]', destroyError);
-      }
-
-      const retryDelay = Math.min(
-        DISCORD_RETRY_MAX_MS,
-        DISCORD_RETRY_BASE_MS * (2 ** Math.min(attempt, 3))
-      );
-      console.log(`[discord login] retrying in ${retryDelay / 1000}s...`);
-      attempt += 1;
-      await sleep(retryDelay);
-    }
-  }
-}
 
 async function start() {
   // Render가 외부 서비스 초기화 전에 포트를 감지할 수 있도록 서버를 먼저 엽니다.
@@ -260,12 +173,14 @@ async function start() {
     await loadCommands(client);
     await loadEvents(client);
 
-    if (!process.env.DISCORD_BOT_TOKEN) {
-      throw new Error('DISCORD_BOT_TOKEN is not configured');
-    }
+    console.log('[discord login] connecting to Gateway...');
+    await connectDiscord(client, process.env.DISCORD_BOT_TOKEN);
 
-    // 웹 서버는 유지하고 Discord Gateway만 실패 시 자동 재연결합니다.
-    void connectDiscord();
+    startPushbulletListener({ prisma, client });
+    startPaymentExpiryScheduler(prisma, client);
+    app.locals.client = client;
+    console.log('Bot logged in');
+    console.log('Bot services initialized');
   } catch (error) {
     console.error('Failed to start web/database initialization:', error);
     process.exit(1);

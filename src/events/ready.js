@@ -2,7 +2,6 @@ import {
   ContainerBuilder,
   Events,
   MessageFlags,
-  REST,
   Routes,
   SeparatorBuilder,
   TextDisplayBuilder,
@@ -17,7 +16,6 @@ export default {
     console.log(`Serving ${client.guilds.cache.size} servers`);
 
     try {
-      const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
       const commandData = client.slashCommands.map(cmd => cmd.data.toJSON());
 
       if (commandData.length === 0) {
@@ -25,7 +23,7 @@ export default {
         return;
       }
 
-      await rest.put(
+      await client.rest.put(
         Routes.applicationCommands(process.env.CLIENT_ID),
         { body: commandData }
       );

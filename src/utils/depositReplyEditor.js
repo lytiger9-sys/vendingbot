@@ -1,6 +1,7 @@
 import { ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v10';
+import { attachDiscordRateLimitLogger } from './discordRateLimitLogger.js';
 
 function getApplicationId() {
   return process.env.CLIENT_ID || process.env.DISCORD_CLIENT_ID || '';
@@ -11,6 +12,7 @@ function getApplicationId() {
 // interaction token만으로 동작하므로 별도의 인증 없는 REST 인스턴스를 씁니다.
 // (봇 토큰을 세팅해도 무방하지만, webhook 엔드포인트는 토큰을 요구하지 않습니다.)
 const rest = new REST({ version: '10' });
+attachDiscordRateLimitLogger(rest);
 
 /**
  * interaction.token으로 원본 ephemeral 응답(@original)을 수정한다.
