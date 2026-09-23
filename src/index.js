@@ -154,45 +154,59 @@ global.sendUserDM = async (userId, options) => {
 
 const PORT = Number.parseInt(process.env.PORT || '10000', 10) || 10000;
 const DISCORD_LOGIN_TIMEOUT_MS = 45_000;
-const DISCORD_GATEWAY_PREFLIGHT_TIMEOUT_MS = 15_000;
-const DISCORD_RETRY_BASE_MS = 30_000;
-const DISCORD_RETRY_MAX_MS = 300_000;
+const DISCORD_RETRY_BASE_MS = 60_000;
+const DISCORD_RETRY_MAX_MS = 900_000;
+const DISCORD_RATE_LIMIT_MIN_RETRY_MS = 300_000;
+const DISCORD_RETRY_JITTER_RATIO = 0.2;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function gatewayPreflight() {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), DISCORD_GATEWAY_PREFLIGHT_TIMEOUT_MS);
+function getErrorStatus(error) {
+  return Number(error?.status || error?.statusCode || error?.response?.status || 0);
+}
 
-  try {
-    const response = await fetch('https://discord.com/api/v10/gateway/bot', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
-        'User-Agent': 'vendingbot-gateway-preflight',
-      },
-      signal: controller.signal,
-    });
+function getErrorMessage(error) {
+  return String(error?.message || error?.response?.data?.message || '');
+}
 
-    const body = await response.text();
-    if (!response.ok) {
-      throw new Error(`Gateway preflight failed with HTTP ${response.status}: ${body.slice(0, 300)}`);
-    }
+function isRateLimitError(error) {
+  const status = getErrorStatus(error);
+  const message = getErrorMessage(error).toLowerCase();
+  return status === 429 || message.includes('rate limit') || message.includes('temporarily');
+}
 
-    console.log('[discord gateway preflight] succeeded');
-  } catch (error) {
-    if (error?.name === 'AbortError') {
-      throw new Error(`Gateway preflight timed out after ${DISCORD_GATEWAY_PREFLIGHT_TIMEOUT_MS / 1000} seconds`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
+function getRetryAfterMs(error) {
+  const retryAfter = error?.retryAfter ?? error?.retry_after ?? error?.response?.data?.retry_after;
+  const seconds = Number(retryAfter);
+  return Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds * 1000) : null;
+}
+
+function addRetryJitter(delayMs) {
+  const jitter = delayMs * DISCORD_RETRY_JITTER_RATIO;
+  return Math.max(1_000, Math.round(delayMs + ((Math.random() * 2 - 1) * jitter)));
+}
+
+function getRetryDelayMs(error, attempt) {
+  const retryAfterMs = getRetryAfterMs(error);
+  if (retryAfterMs !== null) {
+    return Math.min(
+      DISCORD_RETRY_MAX_MS,
+      Math.max(DISCORD_RATE_LIMIT_MIN_RETRY_MS, retryAfterMs),
+    );
   }
+
+  const exponentialDelay = Math.min(
+    DISCORD_RETRY_MAX_MS,
+    DISCORD_RETRY_BASE_MS * (2 ** Math.min(attempt, 4)),
+  );
+  const minimumDelay = isRateLimitError(error) ? DISCORD_RATE_LIMIT_MIN_RETRY_MS : 0;
+  return Math.max(minimumDelay, addRetryJitter(exponentialDelay));
 }
 
 async function loginDiscordWithTimeout() {
-  await gatewayPreflight();
   let timeout;
+  let loginPromise;
+
   const timeoutPromise = new Promise((_, reject) => {
     timeout = setTimeout(() => {
       reject(new Error(`Discord Gateway login timed out after ${DISCORD_LOGIN_TIMEOUT_MS / 1000} seconds`));
@@ -200,16 +214,32 @@ async function loginDiscordWithTimeout() {
   });
 
   try {
+    // Promise.race() cannot cancel client.login(). Keep the login promise
+    // alive until it settles so the retry loop cannot overlap Gateway logins.
+    loginPromise = client.login(process.env.DISCORD_BOT_TOKEN);
     return await Promise.race([
-      client.login(process.env.DISCORD_BOT_TOKEN),
+      loginPromise,
       timeoutPromise,
     ]);
   } finally {
     clearTimeout(timeout);
+    if (loginPromise) {
+      await Promise.race([
+        loginPromise.catch(() => undefined),
+        sleep(5_000),
+      ]);
+    }
   }
 }
 
+let discordConnectPromise = null;
+
 async function connectDiscord() {
+  if (discordConnectPromise) {
+    return discordConnectPromise;
+  }
+
+  discordConnectPromise = (async () => {
   let attempt = 0;
 
   while (true) {
@@ -227,6 +257,9 @@ async function connectDiscord() {
         attempt: attempt + 1,
         name: error?.name,
         code: error?.code,
+        status: getErrorStatus(error),
+        rateLimited: isRateLimitError(error),
+        retryAfterMs: getRetryAfterMs(error),
         message: error?.message,
       });
 
@@ -236,15 +269,18 @@ async function connectDiscord() {
         console.error('[discord destroy failed]', destroyError);
       }
 
-      const retryDelay = Math.min(
-        DISCORD_RETRY_MAX_MS,
-        DISCORD_RETRY_BASE_MS * (2 ** Math.min(attempt, 3))
+      const retryDelay = getRetryDelayMs(error, attempt);
+      console.log(
+        `[discord login] ${isRateLimitError(error) ? 'rate limit detected; ' : ''}` +
+        `retrying in ${Math.ceil(retryDelay / 1000)}s...`,
       );
-      console.log(`[discord login] retrying in ${retryDelay / 1000}s...`);
       attempt += 1;
       await sleep(retryDelay);
     }
   }
+  })();
+
+  return discordConnectPromise;
 }
 
 async function start() {
