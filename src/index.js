@@ -59,6 +59,18 @@ client.on(Events.ShardResume, (shardId) => {
   console.log(`[discord gateway] shard ${shardId} session resumed.`);
 });
 
+client.on('debug', (message) => {
+  // Token and heartbeat messages are intentionally excluded. These lines show
+  // only the connection stage needed to diagnose a stalled Gateway login.
+  if (/provided token/i.test(message)) {
+    return;
+  }
+
+  if (/gateway|connecting|waiting for|identify|session|resume|ready|timeout|reconnect|close/i.test(message)) {
+    console.log('[discord gateway]', message);
+  }
+});
+
 client.commands = new Collection();
 client.slashCommands = new Collection();
 
