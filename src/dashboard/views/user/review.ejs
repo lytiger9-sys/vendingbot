@@ -86,6 +86,7 @@
             <div class="card mb-6">
               <div class="card-header">${productName} · ${r.paidAmount.toLocaleString()}원</div>
               <div class="text-muted" style="margin-bottom: 16px; font-size: 0.9rem;">구매일: ${date}</div>
+              ${renderProductView(r)}
               <div class="input-group">
                 <label class="input-label">평점</label>
                 <select id="rating_${r.id}" class="input">
@@ -107,15 +108,46 @@
 
         function renderCompletedCard(r) {
           const productName = r.product?.name || '알 수 없는 상품';
+          const date = new Date(r.purchasedAt || r.createdAt).toLocaleString('ko-KR');
           const stars = '★'.repeat(r.reviewRating || 0) + '☆'.repeat(5 - (r.reviewRating || 0));
 
           return `
             <div class="card mb-6">
               <div class="card-header">${productName}</div>
+              <div class="text-muted" style="margin-bottom: 16px; font-size: 0.9rem;">구매일: ${date}</div>
+              ${renderProductView(r)}
               <div class="text-warning" style="margin: 8px 0;">${stars}</div>
               <div style="color: #ccc; white-space: pre-wrap;">${r.reviewContent || ''}</div>
             </div>
           `;
+        }
+
+        function escapeHtml(value) {
+          return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        }
+
+        function renderProductView(r) {
+          const productContent = escapeHtml(r.deliveredContent || '저장된 상품 정보가 없습니다.');
+          return `
+            <div style="margin-bottom: 16px;">
+              <button type="button" class="btn btn-outline" onclick="toggleProduct('${r.id}')">
+                구매 상품 보기
+              </button>
+              <div id="product_${r.id}" hidden style="margin-top: 12px; padding: 14px; border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 8px; color: #eee; white-space: pre-wrap; word-break: break-word;">
+                ${productContent}
+              </div>
+            </div>
+          `;
+        }
+
+        function toggleProduct(receiptId) {
+          const product = document.getElementById('product_' + receiptId);
+          if (product) product.hidden = !product.hidden;
         }
 
         async function submitReview(receiptId) {

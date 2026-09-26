@@ -19,6 +19,23 @@ export async function handleModalSubmit(interaction, client, prisma) {
     // 걸리지 않도록 무거운 작업 전에 즉시 defer한다.
     await deferInteraction(interaction, { ephemeral: true });
 
+    // 입력값이 잘못되어도 충전 시도 자체가 기록될 수 있도록 가장 먼저 유저를 보장한다.
+    await prisma.user.upsert({
+      where: { id: interaction.user.id },
+      update: {
+        username: interaction.user.username,
+        avatar: interaction.user.avatar,
+      },
+      create: {
+        id: interaction.user.id,
+        username: interaction.user.username,
+        avatar: interaction.user.avatar,
+        balance: 0,
+        totalSpent: 0,
+        blacklisted: false,
+      },
+    });
+
     // 최소 입금 금액 가져오기
     const minDeposit = await prisma.systemSetting.findUnique({
       where: { key: 'MIN_DEPOSIT' }
@@ -66,23 +83,6 @@ export async function handleModalSubmit(interaction, client, prisma) {
         flags: MessageFlags.IsComponentsV2
       });
     }
-
-    // 유저가 웹 대시보드 로그인 없이 디스코드에서만 입금 신청을 하는 경우,
-    // User 레코드가 아예 없을 수 있으므로 결제 생성 전에 반드시 보장해준다.
-    // (이게 없으면 자동충전 매칭 성공 시 paymentProcessor.js의 tx.user.update가
-    //  P2025 "Record to update not found"로 실패함)
-    await prisma.user.upsert({
-      where: { id: interaction.user.id },
-      update: {},
-      create: {
-        id: interaction.user.id,
-        username: interaction.user.username,
-        avatar: interaction.user.avatar,
-        balance: 0,
-        totalSpent: 0,
-        blacklisted: false
-      }
-    });
 
     // 대기 중인 결제 생성
     const payment = await prisma.payment.create({

@@ -43,11 +43,9 @@ export default {
         console.log(`[interaction] acknowledged: ${customId}`);
       }
 
-      // 버튼마다 같은 upsert를 기다리면 DB 지연이 모든 컴포넌트 응답을 막습니다.
-      // 이미 승인한 컴포넌트는 백그라운드에서 유저 레코드를 보장합니다.
-      if (!opensModal && !interaction.isChatInputCommand()) {
-        void ensureUserExists(prisma, interaction.user);
-      } else if (!opensModal) {
+      // 상호작용은 이미 defer/update로 승인했으므로, 이후 핸들러보다 먼저
+      // 유저 레코드 생성을 끝내 신규 유저의 충전·구매 조회 race condition을 막습니다.
+      if (!opensModal) {
         await ensureUserExists(prisma, interaction.user);
       }
 

@@ -92,11 +92,23 @@ export async function processPurchase(interaction, productId, prisma, client, qu
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { id: interaction.user.id } });
-    if (!user) {
-      await replyContainer(interaction, '사용자를 찾을 수 없습니다.');
-      return;
-    }
+    // interactionCreate에서도 보장하지만, 다른 호출 경로에서도 신규 유저가
+    // 조회보다 먼저 등록되도록 구매 처리 내부에서 한 번 더 원자적으로 보장한다.
+    const user = await prisma.user.upsert({
+      where: { id: interaction.user.id },
+      update: {
+        username: interaction.user.username,
+        avatar: interaction.user.avatar,
+      },
+      create: {
+        id: interaction.user.id,
+        username: interaction.user.username,
+        avatar: interaction.user.avatar,
+        balance: 0,
+        totalSpent: 0,
+        blacklisted: false,
+      },
+    });
 
     if (user.blacklisted) {
       await replyContainer(interaction, '차단된 사용자는 구매할 수 없습니다.');
