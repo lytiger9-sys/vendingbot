@@ -163,10 +163,17 @@ app.use('/dashboard', userDashRouter);
 
 global.sendUserDM = async (userId, options) => {
   try {
+    if (!client.isReady() || !client.rest.token) {
+      console.warn('[discord dm] skipped because the REST client is not authenticated');
+      return false;
+    }
+
     const user = client.users.cache.get(userId) ?? await client.users.fetch(userId);
     await user.send(options);
+    return true;
   } catch (error) {
     console.error('DM send error:', error);
+    return false;
   }
 };
 
@@ -187,6 +194,9 @@ async function start() {
 
     console.log('[discord login] connecting to Gateway...');
     await connectDiscord(client, process.env.DISCORD_BOT_TOKEN);
+
+    // Gateway 연결과 REST 인증은 별도로 보장한다.
+    client.rest.setToken(process.env.DISCORD_BOT_TOKEN);
 
     startPushbulletListener({ prisma, client });
     startPaymentExpiryScheduler(prisma, client);

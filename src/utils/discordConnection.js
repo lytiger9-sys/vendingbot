@@ -16,6 +16,10 @@ export async function connectDiscord(client, token) {
     return;
   }
 
+  // Gateway 로그인 성공만으로 REST 매니저의 인증 상태가 보장되지 않는
+  // 환경을 방어한다. DM·메시지 전송은 client.rest 토큰이 반드시 필요하다.
+  client.rest.setToken(token);
+
   let onReady;
   const startedAt = Date.now();
   const progressTimer = setInterval(() => {
