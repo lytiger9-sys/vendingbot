@@ -7,6 +7,7 @@ import {
   getHighestDiscountRate,
   splitAmountAcrossQuantity,
 } from '../../utils/discountCalculator.js';
+import { releaseUserPurchaseLock } from '../../utils/userPurchaseLock.js';
 
 async function getUserRoleDiscountRate(interaction, prisma, client) {
   const serverId = process.env.SERVER_ID;
@@ -57,12 +58,6 @@ async function replyContainer(interaction, text, color = 0xFF5555) {
   }
 
   return interaction.reply({ ...payload, ephemeral: true });
-}
-
-function releasePurchaseLock(lockKey) {
-  if (lockKey && global.purchaseLock) {
-    global.purchaseLock.delete(lockKey);
-  }
 }
 
 function getDiscountLabel(productDiscountRate, roleDiscountRate) {
@@ -291,6 +286,6 @@ export async function processPurchase(interaction, productId, prisma, client, qu
       '구매 처리 중 오류가 발생했습니다.'
     );
   } finally {
-    releasePurchaseLock(lockKey);
+    releaseUserPurchaseLock(lockKey);
   }
 }

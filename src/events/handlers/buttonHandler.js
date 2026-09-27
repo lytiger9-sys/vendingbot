@@ -3,6 +3,7 @@ import { processPurchase } from './purchaseProcessor.js';
 import { getDashboardUrl } from '../../utils/runtimeConfig.js';
 import { replyInteraction, deferInteraction, showModalInteraction } from '../../utils/interactionResponse.js';
 import { fetchMemberCached } from '../../utils/discordCache.js';
+import { releaseUserPurchaseLock, tryAcquireUserPurchaseLock } from '../../utils/userPurchaseLock.js';
 
 export async function handleButton(interaction, client, prisma) {
   const { customId } = interaction;
@@ -298,9 +299,9 @@ export async function handleButton(interaction, client, prisma) {
   // 구매 확인 버튼 (고정형)
   if (customId.startsWith('purchase_confirm_')) {
     const productId = customId.split('_')[2];
-    const lockKey = `${interaction.user.id}_${productId}`;
+    const lockKey = interaction.user.id;
     
-    if (global.purchaseLock && global.purchaseLock.has(lockKey)) {
+    if (!tryAcquireUserPurchaseLock(lockKey)) {
       if (!interaction.replied && !interaction.deferred) {
         return await replyInteraction(interaction, {
           content: '⏳ 이미 구매가 진행 중입니다. 잠시만 기다려주세요.',
@@ -310,15 +311,16 @@ export async function handleButton(interaction, client, prisma) {
       return;
     }
     
-    if (!global.purchaseLock) global.purchaseLock = new Map();
-    global.purchaseLock.set(lockKey, true);
-    setTimeout(() => global.purchaseLock.delete(lockKey), 5000);
-
     // ⚠️ processPurchase 내부에서 여러 DB 조회 + Discord API 호출
     // (guild.members.fetch, DM 발송, 역할 지급, 로그 전송)이 이어지므로
     // 3초 제한에 걸리지 않도록 무거운 작업 전에 즉시 defer한다.
     // (modalHandler.js의 modal_purchase_ 흐름과 동일한 패턴)
-    await deferInteraction(interaction, { ephemeral: true });
+    try {
+      await deferInteraction(interaction, { ephemeral: true });
+    } catch (error) {
+      releaseUserPurchaseLock(lockKey);
+      throw error;
+    }
 
     await processPurchase(interaction, productId, prisma, client, 1, lockKey);
     return;

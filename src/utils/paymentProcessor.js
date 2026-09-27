@@ -98,6 +98,16 @@ function sendAutoChargeDm(payment) {
   });
 }
 
+let autoChargeQueue = Promise.resolve();
+
+// 서로 다른 Pushbullet 이벤트도 Discord 로그·DM·원본 응답 수정을
+// 동시에 실행하지 않도록 프로세스 안에서 한 건씩 처리한다.
+export function enqueueAutoCharge(data, deps = {}) {
+  const task = autoChargeQueue.then(() => processPayment(data, deps));
+  autoChargeQueue = task.catch(() => undefined);
+  return task;
+}
+
 export async function processPayment(data, deps = {}) {
   const prisma = deps.prisma;
   const client = deps.client;
@@ -175,7 +185,7 @@ export async function processPayment(data, deps = {}) {
 
       await upsertChargeLog(client, prisma, completedPayment);
       await sendAutoChargeDm(completedPayment);
-      await markDepositReplyCompleted(completedPayment);
+      await markDepositReplyCompleted(completedPayment, client);
 
       return completedPayment;
     } catch (error) {

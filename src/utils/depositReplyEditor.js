@@ -1,32 +1,23 @@
 import { ContainerBuilder, TextDisplayBuilder, MessageFlags } from 'discord.js';
-import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v10';
-import { attachDiscordRateLimitLogger } from './discordRateLimitLogger.js';
 
 function getApplicationId() {
   return process.env.CLIENT_ID || process.env.DISCORD_CLIENT_ID || '';
 }
-
-// discord.js의 REST 매니저와 동일한 rest 인스턴스를 재사용합니다.
-// 봇 토큰으로 인증하지만, 웹훅 메시지 수정(@original) 엔드포인트는 봇 토큰 없이도
-// interaction token만으로 동작하므로 별도의 인증 없는 REST 인스턴스를 씁니다.
-// (봇 토큰을 세팅해도 무방하지만, webhook 엔드포인트는 토큰을 요구하지 않습니다.)
-const rest = new REST({ version: '10' });
-attachDiscordRateLimitLogger(rest);
 
 /**
  * interaction.token으로 원본 ephemeral 응답(@original)을 수정한다.
  * interaction.token은 최초 응답 후 15분간만 유효하다.
  * (자동충전 5분 윈도우 안에서는 항상 유효함)
  *
- * @discordjs/rest를 사용해 Discord의 레이트리밋(429/Retry-After, 글로벌 리밋 등)을
- * 자동으로 큐잉/백오프 처리한다. 기존에는 raw fetch를 써서 이 로직이 전혀 없었고,
- * 그게 대량 만료 처리 시 Discord 글로벌 레이트리밋을 유발해 OAuth 로그인까지
- * 막히는 원인이었다.
+ * client.rest를 사용해 다른 봇 요청과 같은 Discord 레이트리밋 큐에서
+ * 429/Retry-After를 처리한다. 별도 REST 인스턴스를 만들지 않아 만료·자동충전
+ * 처리와 일반 Discord 요청이 서로 다른 큐에서 동시에 실행되지 않게 한다.
  */
-async function patchOriginalReply(interactionToken, payload) {
+async function patchOriginalReply(interactionToken, payload, client) {
   const applicationId = getApplicationId();
-  if (!applicationId || !interactionToken) {
+  const rest = client?.rest;
+  if (!applicationId || !interactionToken || !rest) {
     return false;
   }
 
@@ -45,7 +36,7 @@ async function patchOriginalReply(interactionToken, payload) {
   }
 }
 
-export async function markDepositReplyCompleted(payment) {
+export async function markDepositReplyCompleted(payment, client) {
   const container = new ContainerBuilder()
     .setAccentColor(0x2ECC71)
     .addTextDisplayComponents(
@@ -60,10 +51,10 @@ export async function markDepositReplyCompleted(payment) {
   return patchOriginalReply(payment.interactionToken, {
     components: [container.toJSON()],
     flags: MessageFlags.IsComponentsV2,
-  });
+  }, client);
 }
 
-export async function markDepositReplyExpired(payment) {
+export async function markDepositReplyExpired(payment, client) {
   const container = new ContainerBuilder()
     .setAccentColor(0xE74C3C)
     .addTextDisplayComponents(
@@ -79,5 +70,5 @@ export async function markDepositReplyExpired(payment) {
   return patchOriginalReply(payment.interactionToken, {
     components: [container.toJSON()],
     flags: MessageFlags.IsComponentsV2,
-  });
+  }, client);
 }

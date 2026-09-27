@@ -83,7 +83,7 @@ async function processStalePendingPayments(prisma, client) {
 
     // 유저가 받았던 원본 "입금 신청 완료" 응답 메시지도 만료 상태로 수정
     try {
-      await markDepositReplyExpired(expiredPayment);
+      await markDepositReplyExpired(expiredPayment, client);
     } catch (error) {
       console.error(`[auto-charge-expiry] failed to update original reply for payment ${payment.id}:`, error);
     }

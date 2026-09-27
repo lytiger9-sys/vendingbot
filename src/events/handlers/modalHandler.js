@@ -3,6 +3,7 @@ import { processPurchase } from './purchaseProcessor.js';
 import { upsertChargeLog } from '../../utils/paymentLogger.js';
 import { sendReviewWebhook } from '../../utils/reviewWebhook.js';
 import { replyInteraction, deferInteraction, editInteraction } from '../../utils/interactionResponse.js';
+import { tryAcquireUserPurchaseLock } from '../../utils/userPurchaseLock.js';
 
 export async function handleModalSubmit(interaction, client, prisma) {
   const { customId } = interaction;
@@ -140,19 +141,6 @@ export async function handleModalSubmit(interaction, client, prisma) {
   // 구매 수량 모달
   if (customId.startsWith('modal_purchase_')) {
     const productId = customId.split('_')[2];
-    const lockKey = `${interaction.user.id}_${productId}`;
-
-    // 중복 클릭 방지 (아직 DB 조회 전이라 3초 예산을 쓰지 않으므로 defer 전에 처리해도 안전)
-    if (global.purchaseLock && global.purchaseLock.has(lockKey)) {
-      return replyInteraction(interaction, {
-        content: '⏳ 이미 구매가 진행 중입니다. 잠시만 기다려주세요.',
-        ephemeral: true
-      });
-    }
-
-    if (!global.purchaseLock) global.purchaseLock = new Map();
-    global.purchaseLock.set(lockKey, true);
-    setTimeout(() => global.purchaseLock.delete(lockKey), 5000);
 
     // ⚠️ 여기서부터 DB 조회(product, user)와 processPurchase 내부의
     // 디스코드 API 호출(guild.members.fetch, DM 발송, 역할 지급, 로그 전송)이
@@ -226,8 +214,22 @@ export async function handleModalSubmit(interaction, client, prisma) {
       });
     }
 
+    // 상품·수량 확인이 끝난 시점부터 유저 단위로 구매와 역할 지급을 직렬화한다.
+    if (!tryAcquireUserPurchaseLock(interaction.user.id)) {
+      const container = new ContainerBuilder()
+        .setAccentColor(0x666666)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('⏳ 이미 구매가 진행 중입니다. 잠시만 기다려주세요.')
+        );
+
+      return editInteraction(interaction, {
+        components: [container],
+        flags: MessageFlags.IsComponentsV2
+      });
+    }
+
     // 구매 처리 (interaction은 이미 deferred 상태이므로 processPurchase/replyContainer가 editReply를 사용함)
-    await processPurchase(interaction, productId, prisma, client, qty, lockKey);
+    await processPurchase(interaction, productId, prisma, client, qty, interaction.user.id);
     return;
   }
 

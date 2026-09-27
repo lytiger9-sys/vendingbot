@@ -1,5 +1,5 @@
 import { getPushbulletToken } from './runtimeConfig.js';
-import { processPayment } from './paymentProcessor.js';
+import { enqueueAutoCharge } from './paymentProcessor.js';
 
 const PUSHBULLET_STREAM_URL = 'wss://stream.pushbullet.com/websocket/';
 const MAX_RECONNECT_DELAY_MS = 60_000;
@@ -56,7 +56,7 @@ async function handleMirrorPush(push) {
     `[pushbullet] mirrored notification received from ${push?.application_name || 'unknown app'}`
   );
 
-  await processPayment(
+  await enqueueAutoCharge(
     {
       ...push,
       content
