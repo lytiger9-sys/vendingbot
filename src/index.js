@@ -163,7 +163,7 @@ app.use('/dashboard', userDashRouter);
 
 global.sendUserDM = async (userId, options) => {
   try {
-    const user = await client.users.fetch(userId);
+    const user = client.users.cache.get(userId) ?? await client.users.fetch(userId);
     await user.send(options);
   } catch (error) {
     console.error('DM send error:', error);

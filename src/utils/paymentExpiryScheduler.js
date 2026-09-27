@@ -3,8 +3,10 @@ import { upsertChargeLog } from './paymentLogger.js';
 import { markDepositReplyExpired } from './depositReplyEditor.js';
 
 const DEFAULT_CHECK_INTERVAL_MS = 60 * 1000; // 1분마다 체크
-const MAX_EXPIRIES_PER_RUN = 5;
-const DISCORD_OPERATION_GAP_MS = 750;
+// 만료 1건마다 로그 수정·원본 응답 수정·DM이 발생할 수 있으므로
+// 한 번에 여러 건을 처리하지 않아 Discord 요청이 순간적으로 몰리지 않게 한다.
+const MAX_EXPIRIES_PER_RUN = 1;
+const DISCORD_OPERATION_GAP_MS = 1500;
 
 let intervalHandle = null;
 let expiryRunPromise = null;
@@ -77,12 +79,16 @@ async function processStalePendingPayments(prisma, client) {
       console.error(`[auto-charge-expiry] failed to update log embed for payment ${payment.id}:`, error);
     }
 
+    await sleep(DISCORD_OPERATION_GAP_MS);
+
     // 유저가 받았던 원본 "입금 신청 완료" 응답 메시지도 만료 상태로 수정
     try {
       await markDepositReplyExpired(expiredPayment);
     } catch (error) {
       console.error(`[auto-charge-expiry] failed to update original reply for payment ${payment.id}:`, error);
     }
+
+    await sleep(DISCORD_OPERATION_GAP_MS);
 
     // 유저에게 만료 안내 DM (실패해도 전체 흐름에 영향 없도록 개별 try/catch)
     if (typeof global.sendUserDM === 'function') {
@@ -99,9 +105,7 @@ async function processStalePendingPayments(prisma, client) {
       }
     }
 
-    if (claimedCount < staleCandidates.length) {
-      await sleep(DISCORD_OPERATION_GAP_MS);
-    }
+    await sleep(DISCORD_OPERATION_GAP_MS);
   }
 
   if (claimedCount > 0) {

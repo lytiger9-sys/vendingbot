@@ -66,7 +66,8 @@ export async function sendPaymentLog(client, prisma, channelSettingKey, options)
       return false;
     }
 
-    const channel = await client.channels.fetch(channelId).catch(() => null);
+    const channel = client.channels.cache.get(channelId)
+      ?? await client.channels.fetch(channelId).catch(() => null);
     if (!channel || typeof channel.isTextBased !== 'function' || !channel.isTextBased()) {
       return false;
     }
@@ -119,7 +120,8 @@ export async function upsertChargeLog(client, prisma, payment) {
     const channelId = await getSetting(prisma, 'CHARGE_LOG_CHANNEL');
     if (!channelId) return;
 
-    const channel = await client.channels.fetch(channelId).catch(() => null);
+    const channel = client.channels.cache.get(channelId)
+      ?? await client.channels.fetch(channelId).catch(() => null);
     if (!channel || typeof channel.isTextBased !== 'function' || !channel.isTextBased()) return;
 
     const payload = v2Payload(buildChargeContainer(payment));
@@ -128,13 +130,16 @@ export async function upsertChargeLog(client, prisma, payment) {
       try {
         const existingChannel = payment.logChannelId === channel.id
           ? channel
-          : await client.channels.fetch(payment.logChannelId).catch(() => null);
+          : (client.channels.cache.get(payment.logChannelId)
+            ?? await client.channels.fetch(payment.logChannelId).catch(() => null));
 
         if (existingChannel) {
-          const existingMessage = await existingChannel.messages.fetch(payment.logMessageId).catch(() => null);
-          if (existingMessage) {
-            await existingMessage.edit(payload);
+          try {
+            // 메시지를 먼저 GET하지 않고 바로 수정해 Discord 요청 수를 줄인다.
+            await existingChannel.messages.edit(payment.logMessageId, payload);
             return;
+          } catch (editError) {
+            console.warn('충전 로그 메시지 직접 수정 실패, 새 메시지로 대체합니다:', editError);
           }
         }
       } catch (editError) {
