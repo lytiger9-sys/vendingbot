@@ -76,6 +76,7 @@
                   <th>제품</th>
                   <th>가격</th>
                   <th>일시</th>
+                  <th>상품 내용</th>
                   <th>후기</th>
                 </tr>
               </thead>
@@ -236,18 +237,24 @@
           const tbody = document.getElementById("purchases");
           
           if (purchases.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4" style="color: #666;">구매 내역이 없습니다</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4" style="color: #666;">구매 내역이 없습니다</td></tr>';
             return;
           }
           
           tbody.innerHTML = purchases.map(p => {
             const reviewButton = `<button onclick="openReviewModal('${p.id}')" class="btn btn-sm btn-primary">후기쓰기</button>`;
+            const productId = escapeHtml(p.id);
+            const productContent = escapeHtml(p.deliveredContent || '저장된 상품 정보가 없습니다.');
             
             return `
             <tr class="border-t border-gray-700">
-              <td class="py-3">${p.product?.name || "알 수 없음"}</td>
+              <td class="py-3">${escapeHtml(p.product?.name || "알 수 없음")}</td>
               <td class="py-3">${p.paidAmount.toLocaleString()}원</td>
               <td class="py-3" style="color: #888;">${new Date(p.purchasedAt || p.createdAt).toLocaleString("ko-KR")}</td>
+              <td class="py-3">
+                <button type="button" onclick="toggleProduct('${productId}')" class="btn btn-sm btn-outline">상품 보기</button>
+                <div id="product_${productId}" hidden style="margin-top: 8px; min-width: 220px; max-width: 420px; padding: 10px; border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 8px; color: #eee; white-space: pre-wrap; word-break: break-word;">${productContent}</div>
+              </td>
               <td class="py-3">
                 ${p.hasReview ? 
                   '<span class="text-success">작성됨</span>' : 
@@ -256,6 +263,20 @@
               </td>
             </tr>`;
           }).join("");
+        }
+
+        function escapeHtml(value) {
+          return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        }
+
+        function toggleProduct(receiptId) {
+          const product = document.getElementById('product_' + receiptId);
+          if (product) product.hidden = !product.hidden;
         }
 
         function openReviewModal(id) {
