@@ -27,6 +27,15 @@ export default {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction, client, prisma) {
+    // 명령어가 잘못 노출되거나 Discord 권한 동기화가 지연되어도
+    // 실제 잔액 변경이 실행되지 않도록 서버 측에서 다시 검증한다.
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+      return replyInteraction(interaction, {
+        content: '❌ 이 명령어는 관리자 권한이 필요합니다.',
+        ephemeral: true,
+      });
+    }
+
     const targetUser = interaction.options.getUser("유저");
     const rawAmount = interaction.options.getString("금액").replace(/,/g, '');
     const amount = Number(rawAmount);
