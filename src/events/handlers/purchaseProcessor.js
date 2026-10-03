@@ -240,7 +240,17 @@ export async function processPurchase(interaction, productId, prisma, client, qu
         flags: MessageFlags.IsComponentsV2,
       });
     } catch (dmError) {
-      console.log('DM failed, content saved to receipt');
+      console.error('[purchase dm failed]', {
+        userId: interaction.user.id,
+        name: dmError?.name,
+        code: dmError?.code,
+        status: dmError?.status,
+        method: dmError?.method,
+        route: dmError?.url,
+        message: dmError?.message,
+        rawMessage: dmError?.rawError?.message,
+        fallback: 'content_saved_to_receipt',
+      });
     }
 
     await checkAndGiveRole(interaction.user.id, prisma, client);

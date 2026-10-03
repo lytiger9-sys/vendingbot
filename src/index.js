@@ -163,8 +163,20 @@ app.use('/dashboard', userDashRouter);
 
 global.sendUserDM = async (userId, options) => {
   try {
-    if (!client.isReady() || !client.rest.token) {
-      console.warn('[discord dm] skipped because the REST client is not authenticated');
+    if (!client.isReady()) {
+      console.warn('[discord dm skipped]', {
+        reason: 'client_not_ready_or_reconnecting',
+        userId,
+        wsStatus: client.ws?.status,
+      });
+      return false;
+    }
+
+    if (!process.env.DISCORD_BOT_TOKEN) {
+      console.error('[discord dm skipped]', {
+        reason: 'DISCORD_BOT_TOKEN_missing',
+        userId,
+      });
       return false;
     }
 
@@ -172,7 +184,16 @@ global.sendUserDM = async (userId, options) => {
     await user.send(options);
     return true;
   } catch (error) {
-    console.error('DM send error:', error);
+    console.error('[discord dm failed]', {
+      userId,
+      name: error?.name,
+      code: error?.code,
+      status: error?.status,
+      method: error?.method,
+      route: error?.url,
+      message: error?.message,
+      rawMessage: error?.rawError?.message,
+    });
     return false;
   }
 };
