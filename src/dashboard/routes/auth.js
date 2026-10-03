@@ -11,7 +11,6 @@ const OAUTH_REQUEST_COOLDOWN_MS = 5 * 60 * 1000;
 const OAUTH_GLOBAL_GATE_MS = 5 * 60 * 1000;
 const OAUTH_GATE_SETTING = 'OAUTH_GLOBAL_GATE_UNTIL';
 const OAUTH_BLOCK_SETTING = 'OAUTH_GLOBAL_BLOCK_UNTIL';
-const MAX_OAUTH_GLOBAL_RETRIES = 2;
 
 async function readOAuthTimestamp(key) {
   const setting = await prisma.systemSetting.findUnique({ where: { key } });
@@ -109,52 +108,6 @@ function getOAuthRequestId(req) {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function retryOAuthCallback(req, res, next, requestId, attempt = 0) {
-  passport.authenticate('discord', (err, user) => {
-    if (err) {
-      console.error(`[oauth] callback error request=${requestId} attempt=${attempt + 1}:`, err.oauthError?.data || err.oauthError || err);
-
-      if (isGlobalRateLimitError(err)) {
-        const retryAfter = getRetryAfterSeconds(err);
-        const blockedUntil = Date.now() + retryAfter * 1000;
-        oauthBlockedUntil = blockedUntil;
-        void writeOAuthTimestamp(OAUTH_BLOCK_SETTING, blockedUntil).catch((blockError) => {
-          console.error('[oauth gate] failed to persist Discord block state:', blockError);
-        });
-
-        if (attempt < MAX_OAUTH_GLOBAL_RETRIES && !res.headersSent) {
-          console.warn(`[oauth] global rate limit; retrying callback request=${requestId} in ${retryAfter}s (${attempt + 1}/${MAX_OAUTH_GLOBAL_RETRIES})`);
-          setTimeout(() => {
-            if (!res.headersSent) {
-              retryOAuthCallback(req, res, next, requestId, attempt + 1);
-            }
-          }, retryAfter * 1000);
-          return;
-        }
-
-        res.set('Retry-After', String(retryAfter));
-        return res.status(429).send(`Discord 로그인 요청이 일시적으로 제한되었습니다. ${retryAfter}초 후 다시 시도해주세요.`);
-      }
-
-      return res.status(502).send('Discord OAuth temporarily unavailable');
-    }
-
-    if (!user) {
-      console.warn(`[oauth] callback returned no user request=${requestId}`);
-      return res.redirect('/auth/login-failed');
-    }
-
-    req.logIn(user, (loginError) => {
-      if (loginError) return next(loginError);
-      return req.session.save((saveError) => {
-        if (saveError) return next(saveError);
-        console.log(`[oauth] login success request=${requestId}`);
-        return res.redirect('/');
-      });
-    });
-  })(req, res, next);
-}
-
 router.get('/csrf', isAuthenticated, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
@@ -230,7 +183,34 @@ router.get('/discord/callback', async (req, res, next) => {
   }
 
   oauthCallbackCooldown.set(getClientKey(req), Date.now() + OAUTH_REQUEST_COOLDOWN_MS);
-  return retryOAuthCallback(req, res, next, requestId);
+  passport.authenticate('discord', (err, user) => {
+    if (err) {
+      console.error(`[oauth] callback error request=${requestId}:`, err.oauthError?.data || err.oauthError || err);
+      if (isGlobalRateLimitError(err)) {
+        const retryAfter = getRetryAfterSeconds(err);
+        oauthBlockedUntil = Date.now() + retryAfter * 1000;
+        void writeOAuthTimestamp(OAUTH_BLOCK_SETTING, oauthBlockedUntil).catch((blockError) => {
+          console.error('[oauth gate] failed to persist Discord block state:', blockError);
+        });
+        res.set('Retry-After', String(retryAfter));
+        return res.status(429).send(`Discord 로그인 요청이 일시적으로 제한되었습니다. ${retryAfter}초 후 다시 시도해주세요.`);
+      }
+      return res.status(502).send('Discord OAuth temporarily unavailable');
+    }
+    if (!user) {
+      console.warn(`[oauth] callback returned no user request=${requestId}`);
+      return res.redirect('/auth/login-failed');
+    }
+
+    req.logIn(user, (loginError) => {
+      if (loginError) return next(loginError);
+      return req.session.save((saveError) => {
+        if (saveError) return next(saveError);
+        console.log(`[oauth] login success request=${requestId} user=${user.id}`);
+        return res.redirect('/');
+      });
+    });
+  })(req, res, next);
 });
 
 router.get('/login-failed', (req, res) => {
