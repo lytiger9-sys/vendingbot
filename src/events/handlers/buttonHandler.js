@@ -112,13 +112,16 @@ export async function handleButton(interaction, client, prisma) {
 
   // 내정보 버튼
   if (customId === 'btn_my_info') {
+    console.log(`[button btn_my_info] start user=${interaction.user.id}`);
     if (!(await checkServerId(interaction))) return;
     
     const user = await prisma.user.findUnique({ where: { id: interaction.user.id } });
+    console.log(`[button btn_my_info] user query done user=${interaction.user.id}`);
     const balance = (user?.balance || 0).toLocaleString();
     const totalSpent = (user?.totalSpent || 0).toLocaleString();
 
     const member = await fetchMemberCached(interaction.guild, interaction.user.id).catch(() => null);
+    console.log(`[button btn_my_info] member fetch done user=${interaction.user.id} found=${Boolean(member)}`);
     const userRoleIds = member?.roles.cache.map(r => r.id) || [];
 
     const roleRewards = await prisma.roleReward.findMany();
@@ -146,6 +149,7 @@ export async function handleButton(interaction, client, prisma) {
         hasReview: false
       }
     });
+    console.log(`[button btn_my_info] receipt query done user=${interaction.user.id}`);
 
     const container = new ContainerBuilder()
       .setAccentColor(0x5865F2)
@@ -177,6 +181,7 @@ export async function handleButton(interaction, client, prisma) {
       flags: MessageFlags.IsComponentsV2,
       ephemeral: true
     });
+    console.log(`[button btn_my_info] response done user=${interaction.user.id}`);
     return;
   }
 

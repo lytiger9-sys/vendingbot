@@ -33,6 +33,7 @@ export default {
       // 슬래시 명령어는 각 command.execute가 reply/defer를 직접 관리합니다.
       // 여기서 다시 defer하면 임베드게시·웹패널처럼 자체 defer하는 명령어와 충돌합니다.
       if (interaction.isButton() && !opensModal) {
+        console.log(`[interaction] acknowledging: ${customId}`);
         await deferInteraction(interaction, { ephemeral: true });
         console.log(`[interaction] acknowledged: ${customId}`);
       } else if (interaction.isStringSelectMenu() && !opensModal) {
@@ -46,7 +47,9 @@ export default {
       // 상호작용은 이미 defer/update로 승인했으므로, 이후 핸들러보다 먼저
       // 유저 레코드 생성을 끝내 신규 유저의 충전·구매 조회 race condition을 막습니다.
       if (!opensModal) {
+        console.log(`[interaction] ensure-user start: ${customId}`);
         await ensureUserExists(prisma, interaction.user);
+        console.log(`[interaction] ensure-user done: ${customId}`);
       }
 
       // 슬래시 명령어
@@ -62,11 +65,13 @@ export default {
         if (opensModal) {
           await handleButton(interaction, client, prisma);
         } else {
+          console.log(`[interaction] button handler start: ${customId}`);
           await withTimeout(
             handleButton(interaction, client, prisma),
             INTERACTION_HANDLER_TIMEOUT_MS,
             `button handler (${customId})`,
           );
+          console.log(`[interaction] button handler done: ${customId}`);
         }
         return;
       }
