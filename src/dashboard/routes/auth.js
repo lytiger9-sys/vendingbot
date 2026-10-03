@@ -7,8 +7,8 @@ const router = express.Router();
 let oauthBlockedUntil = 0;
 const oauthRequestCooldown = new Map();
 const oauthCallbackCooldown = new Map();
-const OAUTH_REQUEST_COOLDOWN_MS = 15_000;
-const OAUTH_GLOBAL_GATE_MS = 30_000;
+const OAUTH_REQUEST_COOLDOWN_MS = 5 * 60 * 1000;
+const OAUTH_GLOBAL_GATE_MS = 5 * 60 * 1000;
 const OAUTH_GATE_SETTING = 'OAUTH_GLOBAL_GATE_UNTIL';
 const OAUTH_BLOCK_SETTING = 'OAUTH_GLOBAL_BLOCK_UNTIL';
 
@@ -100,7 +100,12 @@ function isGlobalRateLimitError(error) {
 
 function getRetryAfterSeconds(error) {
   const retryAfter = error?.oauthError?.data?.retry_after;
-  return Number.isFinite(Number(retryAfter)) ? Math.ceil(Number(retryAfter)) : 300;
+  // Discord가 retry_after를 생략해도 짧은 간격으로 재요청하지 않는다.
+  return Number.isFinite(Number(retryAfter)) ? Math.ceil(Number(retryAfter)) : 15 * 60;
+}
+
+function getOAuthRequestId(req) {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 router.get('/csrf', isAuthenticated, (req, res) => {
@@ -108,6 +113,9 @@ router.get('/csrf', isAuthenticated, (req, res) => {
 });
 
 router.get('/discord', async (req, res, next) => {
+  const requestId = getOAuthRequestId(req);
+  console.log(`[oauth] login start request=${requestId} ip=${getClientKey(req)}`);
+
   if (req.user) return res.redirect('/');
 
   const cooldownSeconds = isOnOAuthCooldown(req);
@@ -135,15 +143,21 @@ router.get('/discord', async (req, res, next) => {
       return res.status(429).send(`다른 로그인 요청이 처리 중입니다. ${globalGateSeconds}초 후 다시 시도해주세요.`);
     }
   } catch (error) {
-    // DB 장애 시에는 기존 메모리 제한으로 계속 동작하되 원인을 남긴다.
-    console.error('[oauth gate] failed to access persistent gate:', error);
+    // 전역 게이트를 확인하지 못한 상태에서 Discord로 요청하면
+    // 차단 우회가 될 수 있으므로, DB 장애 시에는 OAuth를 시작하지 않는다.
+    console.error(`[oauth gate] unavailable request=${requestId}:`, error);
+    return res.status(503).send('로그인 제한 상태를 확인할 수 없습니다. 잠시 후 다시 시도해주세요.');
   }
 
   setOAuthCooldown(req);
+  console.log(`[oauth] redirecting to Discord request=${requestId}`);
   return passport.authenticate('discord')(req, res, next);
 });
 
 router.get('/discord/callback', async (req, res, next) => {
+  const requestId = getOAuthRequestId(req);
+  console.log(`[oauth] callback start request=${requestId} ip=${getClientKey(req)} hasCode=${Boolean(req.query.code)}`);
+
   // callback URL을 새로고침해도 전역 제한 중에는 Discord에 재요청하지 않습니다.
   if (Date.now() < oauthBlockedUntil) {
     const retryAfter = Math.ceil((oauthBlockedUntil - Date.now()) / 1000);
@@ -158,7 +172,8 @@ router.get('/discord/callback', async (req, res, next) => {
       return res.status(429).send(`Discord OAuth가 일시적으로 차단되어 있습니다. ${distributedBlockSeconds}초 후 다시 시도해주세요.`);
     }
   } catch (error) {
-    console.error('[oauth gate] failed to read persistent block state:', error);
+    console.error(`[oauth gate] unavailable on callback request=${requestId}:`, error);
+    return res.status(503).send('로그인 제한 상태를 확인할 수 없습니다. 잠시 후 다시 시도해주세요.');
   }
 
   const callbackCooldownSeconds = isCallbackOnCooldown(req);
@@ -170,7 +185,7 @@ router.get('/discord/callback', async (req, res, next) => {
   oauthCallbackCooldown.set(getClientKey(req), Date.now() + OAUTH_REQUEST_COOLDOWN_MS);
   passport.authenticate('discord', (err, user) => {
     if (err) {
-      console.error('OAuth callback error:', err.oauthError?.data || err.oauthError || err);
+      console.error(`[oauth] callback error request=${requestId}:`, err.oauthError?.data || err.oauthError || err);
       if (isGlobalRateLimitError(err)) {
         const retryAfter = getRetryAfterSeconds(err);
         oauthBlockedUntil = Date.now() + retryAfter * 1000;
@@ -182,12 +197,16 @@ router.get('/discord/callback', async (req, res, next) => {
       }
       return res.status(502).send('Discord OAuth temporarily unavailable');
     }
-    if (!user) return res.redirect('/auth/login-failed');
+    if (!user) {
+      console.warn(`[oauth] callback returned no user request=${requestId}`);
+      return res.redirect('/auth/login-failed');
+    }
 
     req.logIn(user, (loginError) => {
       if (loginError) return next(loginError);
       return req.session.save((saveError) => {
         if (saveError) return next(saveError);
+        console.log(`[oauth] login success request=${requestId} user=${user.id}`);
         return res.redirect('/');
       });
     });
