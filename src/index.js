@@ -226,6 +226,21 @@ async function start() {
     console.log('Bot services initialized');
   } catch (error) {
     console.error('Failed to start web/database initialization:', error);
+
+    // Discord/Cloudflare의 Gateway 차단(HTTP 429/1015)에서 프로세스를
+    // 종료하면 Render가 즉시 재시작하고 preflight를 반복 호출하게 된다.
+    // 웹 서버는 유지해 재시작 폭주를 막고, Discord 서비스는 비활성 상태로 둔다.
+    const isDiscordAccessBlocked = [
+      'GATEWAY_PREFLIGHT_HTTP_ERROR',
+      'GATEWAY_PREFLIGHT_TIMEOUT',
+      'GATEWAY_READY_TIMEOUT',
+    ].includes(error?.code);
+
+    if (isDiscordAccessBlocked) {
+      console.error('[discord services] disabled for this process because Gateway access is unavailable; no automatic restart will be triggered');
+      return;
+    }
+
     process.exit(1);
   }
 }
