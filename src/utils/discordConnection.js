@@ -2,6 +2,53 @@ import { Events } from 'discord.js';
 
 const CONNECTION_PROGRESS_LOG_INTERVAL_MS = 30_000;
 const GATEWAY_READY_TIMEOUT_MS = 60_000;
+const GATEWAY_PREFLIGHT_TIMEOUT_MS = 15_000;
+
+async function checkGatewayPreflight() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), GATEWAY_PREFLIGHT_TIMEOUT_MS);
+
+  try {
+    const response = await fetch('https://discord.com/api/v10/gateway', {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    const body = await response.text();
+
+    if (!response.ok) {
+      const error = new Error(`Gateway preflight failed with HTTP ${response.status}`);
+      error.code = 'GATEWAY_PREFLIGHT_HTTP_ERROR';
+      error.status = response.status;
+      error.responseBody = body.slice(0, 500);
+      throw error;
+    }
+
+    console.log('[discord gateway preflight] ok', {
+      status: response.status,
+      gatewayUrl: (() => {
+        try {
+          return JSON.parse(body)?.url || null;
+        } catch {
+          return null;
+        }
+      })(),
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      error.code = 'GATEWAY_PREFLIGHT_TIMEOUT';
+      error.message = `Gateway preflight timed out after ${GATEWAY_PREFLIGHT_TIMEOUT_MS / 1000} seconds`;
+    }
+    console.error('[discord gateway preflight] failed', {
+      code: error?.code,
+      status: error?.status,
+      message: error?.message,
+      responseBody: error?.responseBody,
+    });
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 /**
  * Connect a Discord client once and wait until it is actually ready to serve
@@ -16,6 +63,8 @@ export async function connectDiscord(client, token) {
   if (client.isReady()) {
     return;
   }
+
+  await checkGatewayPreflight();
 
   // Gateway 로그인 성공만으로 REST 매니저의 인증 상태가 보장되지 않는
   // 환경을 방어한다. DM·메시지 전송은 client.rest 토큰이 반드시 필요하다.
