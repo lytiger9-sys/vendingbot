@@ -24,6 +24,7 @@ export async function connectDiscord(client, token) {
   let onReady;
   let onReadyError;
   let readyTimeout;
+  let lastGatewayEvent = null;
   const startedAt = Date.now();
   const progressTimer = setInterval(() => {
     const waitedSeconds = Math.floor((Date.now() - startedAt) / 1000);
@@ -45,6 +46,27 @@ export async function connectDiscord(client, token) {
     }, GATEWAY_READY_TIMEOUT_MS);
   });
 
+  const recordGatewayDisconnect = (closeEvent, shardId) => {
+    lastGatewayEvent = {
+      type: 'shardDisconnect',
+      shardId,
+      code: closeEvent?.code,
+      reason: closeEvent?.reason?.toString?.() || String(closeEvent?.reason || ''),
+    };
+  };
+  const recordGatewayError = (error, shardId) => {
+    lastGatewayEvent = {
+      type: 'shardError',
+      shardId,
+      name: error?.name,
+      code: error?.code,
+      message: error?.message,
+    };
+  };
+
+  client.on(Events.ShardDisconnect, recordGatewayDisconnect);
+  client.on(Events.ShardError, recordGatewayError);
+
   try {
     await client.login(token);
     console.log('[discord login] Gateway transport connected; waiting for Ready event.');
@@ -58,6 +80,7 @@ export async function connectDiscord(client, token) {
       wsStatus: error?.wsStatus ?? client.ws?.status,
       gatewayPing: error?.gatewayPing ?? client.ws?.ping,
       elapsedSeconds: Math.floor((Date.now() - startedAt) / 1000),
+      lastGatewayEvent,
     });
     try {
       client.destroy();
@@ -71,5 +94,7 @@ export async function connectDiscord(client, token) {
   } finally {
     clearInterval(progressTimer);
     if (readyTimeout) clearTimeout(readyTimeout);
+    client.off(Events.ShardDisconnect, recordGatewayDisconnect);
+    client.off(Events.ShardError, recordGatewayError);
   }
 }
