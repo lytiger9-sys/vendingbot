@@ -22,7 +22,6 @@ export async function connectDiscord(client, token) {
   client.rest.setToken(token);
 
   let onReady;
-  let onReadyError;
   let readyTimeout;
   let lastGatewayEvent = null;
   const startedAt = Date.now();
@@ -30,21 +29,6 @@ export async function connectDiscord(client, token) {
     const waitedSeconds = Math.floor((Date.now() - startedAt) / 1000);
     console.warn(`[discord login] still waiting for Gateway Ready (${waitedSeconds}s elapsed).`);
   }, CONNECTION_PROGRESS_LOG_INTERVAL_MS);
-
-  const ready = new Promise((resolve, reject) => {
-    onReady = resolve;
-    onReadyError = reject;
-    client.once(Events.ClientReady, onReady);
-    readyTimeout = setTimeout(() => {
-      const error = new Error(
-        `Discord Gateway Ready timed out after ${GATEWAY_READY_TIMEOUT_MS / 1000} seconds`,
-      );
-      error.code = 'GATEWAY_READY_TIMEOUT';
-      error.wsStatus = client.ws?.status;
-      error.gatewayPing = client.ws?.ping;
-      onReadyError(error);
-    }, GATEWAY_READY_TIMEOUT_MS);
-  });
 
   const recordGatewayDisconnect = (closeEvent, shardId) => {
     lastGatewayEvent = {
@@ -67,10 +51,33 @@ export async function connectDiscord(client, token) {
   client.on(Events.ShardDisconnect, recordGatewayDisconnect);
   client.on(Events.ShardError, recordGatewayError);
 
-  try {
+  const ready = new Promise((resolve) => {
+    onReady = resolve;
+    client.once(Events.ClientReady, onReady);
+  });
+
+  const loginAndWaitForReady = (async () => {
     await client.login(token);
     console.log('[discord login] Gateway transport connected; waiting for Ready event.');
     await ready;
+  })();
+
+  const timeout = new Promise((_, reject) => {
+    readyTimeout = setTimeout(() => {
+      const error = new Error(
+        `Discord Gateway Ready timed out after ${GATEWAY_READY_TIMEOUT_MS / 1000} seconds`,
+      );
+      error.code = 'GATEWAY_READY_TIMEOUT';
+      error.wsStatus = client.ws?.status;
+      error.gatewayPing = client.ws?.ping;
+      reject(error);
+    }, GATEWAY_READY_TIMEOUT_MS);
+  });
+
+  try {
+    // Promise.race attaches rejection handlers to both branches, so a stalled
+    // client.login() cannot leave the timeout error as an unhandled rejection.
+    await Promise.race([loginAndWaitForReady, timeout]);
   } catch (error) {
     client.off(Events.ClientReady, onReady);
     if (readyTimeout) clearTimeout(readyTimeout);
