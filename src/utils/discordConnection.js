@@ -24,6 +24,7 @@ export async function connectDiscord(client, token) {
   let onReady;
   let readyTimeout;
   let lastGatewayEvent = null;
+  let lastGatewayDebug = null;
   const startedAt = Date.now();
   const progressTimer = setInterval(() => {
     const waitedSeconds = Math.floor((Date.now() - startedAt) / 1000);
@@ -50,6 +51,12 @@ export async function connectDiscord(client, token) {
 
   client.on(Events.ShardDisconnect, recordGatewayDisconnect);
   client.on(Events.ShardError, recordGatewayError);
+  const recordGatewayDebug = (message) => {
+    if (/gateway|connecting|hello|identify|ready|session|reconnect|close/i.test(String(message))) {
+      lastGatewayDebug = String(message).slice(-1000);
+    }
+  };
+  client.on('debug', recordGatewayDebug);
 
   const ready = new Promise((resolve) => {
     onReady = resolve;
@@ -88,6 +95,7 @@ export async function connectDiscord(client, token) {
       gatewayPing: error?.gatewayPing ?? client.ws?.ping,
       elapsedSeconds: Math.floor((Date.now() - startedAt) / 1000),
       lastGatewayEvent,
+      lastGatewayDebug,
     });
     try {
       client.destroy();
@@ -103,5 +111,6 @@ export async function connectDiscord(client, token) {
     if (readyTimeout) clearTimeout(readyTimeout);
     client.off(Events.ShardDisconnect, recordGatewayDisconnect);
     client.off(Events.ShardError, recordGatewayError);
+    client.off('debug', recordGatewayDebug);
   }
 }
